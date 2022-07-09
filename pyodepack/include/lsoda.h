@@ -2289,19 +2289,14 @@ namespace lsoda
         iwork1 = iwork2 = iwork5 = iwork6 = iwork7 = iwork8 = iwork9 = 0;
         rwork1 = rwork6 = rwork7 = 0.0;
         rwork5 = h0;
-        // std::cout << "rwork5 = " << rwork5 << '\n';
 
         t = teval[0];
         std::memcpy(y, y0, n * sizeof(T));
         std::memcpy(Y, y0, n * sizeof(T));
 
-        // atol--;
-        // rtol--;
         y--;
 
-
         for (i = 1; (size_t)i < m; i++) {
-            // std::cout << std::flush;
             tout = teval[i];
 
             lsoda_integrator.lsoda(fn, n, y, &t, tout, itol, rtol, atol, itask, &istate, iopt, jt,

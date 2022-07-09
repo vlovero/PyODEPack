@@ -163,7 +163,6 @@ T initStepSize(funcT f, const T t0, const RP(T) y0, const RP(T) f0, RP(T) y1, RP
         h1 = std::pow(0.01 / std::max(d1, d2), 1.0 / (order + 1));
     }
 
-    // std::cout << 100 * h0 << ", " << h1 << '\n';
     return std::min<T>(100 * h0, h1);
 }
 

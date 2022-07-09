@@ -156,9 +156,7 @@ namespace erk
                     val = std::fma(D[k], K[k * n + j], val);
                 }
                 dy[j] = dt * val;
-                // std::cout << dy[j] << ", ";
             }
-            // std::cout << "\n----------------------------------------\n";
 
             // compute error norm and scaling factor for step-size
             norm = gerr_norm<T>(dy, yn, yn1, atol, rtol, n);
