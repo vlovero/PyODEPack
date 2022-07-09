@@ -1,0 +1,2 @@
+include pyodepack/include/*.h
+include pyodepack/src/*.cpp
