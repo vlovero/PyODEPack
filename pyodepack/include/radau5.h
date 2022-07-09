@@ -291,11 +291,11 @@ namespace radau5iia
                 if ((1 <= rate) || (tol < val)) {
                     converged = false;
                     niter = m + 1;
-                    break;
+                    return rate;
                 }
             }
 
-            // if not converged apply change
+            // if not not converged apply change
             for (i = 0; i < (3 * n); i++) {
                 W[i] += dW[i];
             }
@@ -307,7 +307,7 @@ namespace radau5iia
             if ((normdW == 0.0) || ((m != 0) && ((rate / (1.0 - rate) * normdW) < tol))) {
                 converged = true;
                 niter = m + 1;
-                break;
+                return rate;
             }
 
             // update prev data
