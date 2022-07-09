@@ -1,3 +1,17 @@
+/*
+ * Generalized explicit Runge-Kutta solver that uses interpolation
+ * to compute points between two successive steps. Algorithm inspired
+ * by [1]
+ *
+ * The constexpr template arguments allows the compiler to unroll
+ * and vectorize many of the loops which means performance will
+ * be the same as if each method was hand coded.
+ *
+ * Vincent Lovero
+ *
+ * [1] E. Hairer, S. P. Norsett G. Wanner, “Solving Ordinary Differential Equations I: Nonstiff Problems”
+ */
+
 #ifndef ODEPACK_GENERAL_RK_H
 #define ODEPACK_GENERAL_RK_H
 
@@ -159,7 +173,7 @@ namespace erk
             }
 
             // compute error norm and scaling factor for step-size
-            norm = gerr_norm<T>(dy, yn, yn1, atol, rtol, n);
+            norm = errorNorm<T>(dy, yn, yn1, atol, rtol, n);
             factor = norm ? 0.9 * std::pow(norm, err_exp) : 10.0;
             factor = std::min<T>(10, factor);
             feval += (s - 1);

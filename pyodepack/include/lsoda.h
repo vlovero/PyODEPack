@@ -1,3 +1,13 @@
+/*
+ * Multithread capable version of the LSODA routine adapted from [1]
+ * to take in template arguments which should make the code more flexible
+ * and easier to interface with.
+ *
+ * Vincent Lovero
+ *
+ * [1] Li, Heng http://lh3lh3.users.sourceforge.net/download/lsoda.c
+ */
+
 #ifndef LSODA_H
 #define LSODA_H
 
@@ -64,11 +74,13 @@ namespace lsoda
             ptrdiff_t i, ii, xindex;
 
             xindex = 0;
-            if (n <= 0)
+            if (n <= 0) {
                 return xindex;
+            }
             xindex = 1;
-            if (n <= 1 || incx <= 0)
+            if (n <= 1 || incx <= 0) {
                 return xindex;
+            }
 
             /* Code for increments not equal to 1.   */
 
@@ -103,14 +115,16 @@ namespace lsoda
         {
             ptrdiff_t m, i;
 
-            if (n <= 0)
+            if (n <= 0) {
                 return;
+            }
 
             /* Code for increments not equal to 1.  */
 
             if (incx != 1) {
-                for (i = 1; i <= n * incx; i = i + incx)
+                for (i = 1; i <= n * incx; i = i + incx) {
                     dx[i] = da * dx[i];
+                }
                 return;
             }
             /* Code for increments equal to 1.  */
@@ -119,10 +133,12 @@ namespace lsoda
 
             m = n % 5;
             if (m != 0) {
-                for (i = 1; i <= m; i++)
+                for (i = 1; i <= m; i++) {
                     dx[i] = da * dx[i];
-                if (n < 5)
+                }
+                if (n < 5) {
                     return;
+                }
             }
             for (i = m + 1; i <= n; i = i + 5) {
                 dx[i] = da * dx[i];
@@ -140,18 +156,21 @@ namespace lsoda
             ptrdiff_t ix, iy, i, m;
 
             dotprod = 0.;
-            if (n <= 0)
+            if (n <= 0) {
                 return dotprod;
+            }
 
             /* Code for unequal or nonpositive increments.  */
 
             if (incx != incy || incx < 1) {
                 ix = 1;
                 iy = 1;
-                if (incx < 0)
+                if (incx < 0) {
                     ix = (-n + 1) * incx + 1;
-                if (incy < 0)
+                }
+                if (incy < 0) {
                     iy = (-n + 1) * incy + 1;
+                }
                 for (i = 1; i <= n; i++) {
                     dotprod = dotprod + dx[ix] * dy[iy];
                     ix = ix + incx;
@@ -166,21 +185,25 @@ namespace lsoda
             if (incx == 1) {
                 m = n % 5;
                 if (m != 0) {
-                    for (i = 1; i <= m; i++)
+                    for (i = 1; i <= m; i++) {
                         dotprod = dotprod + dx[i] * dy[i];
-                    if (n < 5)
+                    }
+                    if (n < 5) {
                         return dotprod;
+                    }
                 }
-                for (i = m + 1; i <= n; i = i + 5)
+                for (i = m + 1; i <= n; i = i + 5) {
                     dotprod = dotprod + dx[i] * dy[i] + dx[i + 1] * dy[i + 1] +
-                    dx[i + 2] * dy[i + 2] + dx[i + 3] * dy[i + 3] +
-                    dx[i + 4] * dy[i + 4];
+                        dx[i + 2] * dy[i + 2] + dx[i + 3] * dy[i + 3] +
+                        dx[i + 4] * dy[i + 4];
+                }
                 return dotprod;
             }
             /* Code for positive equal nonunit increments.   */
 
-            for (i = 1; i <= n * incx; i = i + incx)
+            for (i = 1; i <= n * incx; i = i + incx) {
                 dotprod = dotprod + dx[i] * dy[i];
+            }
             return dotprod;
 
         }
@@ -189,18 +212,21 @@ namespace lsoda
         {
             ptrdiff_t ix, iy, i, m;
 
-            if (n < 0 || da == 0.)
+            if (n < 0 || da == 0.) {
                 return;
+            }
 
             /* Code for nonequal or nonpositive increments.  */
 
             if (incx != incy || incx < 1) {
                 ix = 1;
                 iy = 1;
-                if (incx < 0)
+                if (incx < 0) {
                     ix = (-n + 1) * incx + 1;
-                if (incy < 0)
+                }
+                if (incy < 0) {
                     iy = (-n + 1) * incy + 1;
+                }
                 for (i = 1; i <= n; i++) {
                     dy[iy] = dy[iy] + da * dx[ix];
                     ix = ix + incx;
@@ -215,10 +241,12 @@ namespace lsoda
             if (incx == 1) {
                 m = n % 4;
                 if (m != 0) {
-                    for (i = 1; i <= m; i++)
+                    for (i = 1; i <= m; i++) {
                         dy[i] = dy[i] + da * dx[i];
-                    if (n < 4)
+                    }
+                    if (n < 4) {
                         return;
+                    }
                 }
                 for (i = m + 1; i <= n; i = i + 4) {
                     dy[i] = dy[i] + da * dx[i];
@@ -230,8 +258,9 @@ namespace lsoda
             }
             /* Code for equal, positive, nonunit increments.   */
 
-            for (i = 1; i <= n * incx; i = i + incx)
+            for (i = 1; i <= n * incx; i = i + incx) {
                 dy[i] = da * dx[i] + dy[i];
+            }
             return;
 
         }
@@ -338,11 +367,12 @@ namespace lsoda
                     }
                     daxpy(n - k, t, a[k] + k, 1, a[i] + k, 1);
                 }
-            }			/* end k-loop  */
+            } /* end k-loop  */
 
             ipvt[n] = n;
-            if (a[n][n] == 0.)
+            if (a[n][n] == 0.) {
                 *info = n;
+            }
 
         }
 
@@ -368,7 +398,7 @@ namespace lsoda
          * *Istate is set to 2, the illegal input counter is zeroed, and the
          * optional outputs are loaded ptrdiff_to the work arrays before returning.
         */
-        void successreturn(T *y, T *t, ptrdiff_t itask, ptrdiff_t ihit, T  tcrit, ptrdiff_t *istate)
+        void successreturn(T *y, T *t, ptrdiff_t itask, ptrdiff_t ihit, T tcrit, ptrdiff_t *istate)
         {
             size_t i;
             yp1 = yh[1];
@@ -388,10 +418,10 @@ namespace lsoda
 
         void stoda(ptrdiff_t neq, T *y, funcT f, const void *_data)
         {
-            ptrdiff_t             corflag, orderflag;
-            ptrdiff_t             i, i1, j, m, ncf;
-            T          del, delp, dsm, dup, exup, r, rh, rhup, told;
-            T          pdh, pnorm;
+            ptrdiff_t corflag, orderflag;
+            ptrdiff_t i, i1, j, m, ncf;
+            T del, delp, dsm, dup, exup, r, rh, rhup, told;
+            T pdh, pnorm;
 
             /*
                stoda performs one step of the ptrdiff_tegration of an initial value
@@ -462,13 +492,15 @@ namespace lsoda
                 pdlast = 0.;
                 ratio = 5.;
                 cfode(2);
-                for (i = 1; i <= 5; i++)
+                for (i = 1; i <= 5; i++) {
                     cm2[i] = tesco[i][2] * elco[i][i + 1];
+                }
                 cfode(1);
-                for (i = 1; i <= 12; i++)
+                for (i = 1; i <= 12; i++) {
                     cm1[i] = tesco[i][2] * elco[i][i + 1];
+                }
                 resetcoeff();
-            }			/* end if ( jstart == 0 )   */
+            } /* end if ( jstart == 0 )   */
             /*
                The following block handles preliminaries needed when jstart = -1.
                ipup is set to miter to force a matrix update.
@@ -483,8 +515,9 @@ namespace lsoda
             if (jstart == -1) {
                 ipup = miter;
                 lmax = maxord + 1;
-                if (ialth == 1)
+                if (ialth == 1) {
                     ialth = 2;
+                }
                 if (meth != mused) {
                     cfode(meth);
                     ialth = l;
@@ -495,14 +528,14 @@ namespace lsoda
                     h = hold;
                     scaleh(&rh, &pdh);
                 }
-            }			/* if ( jstart == -1 )   */
+            } /* if ( jstart == -1 )   */
             if (jstart == -2) {
                 if (h != hold) {
                     rh = h / hold;
                     h = hold;
                     scaleh(&rh, &pdh);
                 }
-            }			/* if ( jstart == -2 )   */
+            } /* if ( jstart == -2 )   */
             /*
                Prediction.
                This section computes the predicted values by effectively
@@ -514,23 +547,28 @@ namespace lsoda
             */
             while (1) {
                 while (1) {
-                    if (std::abs(rc - 1.) > ccmax)
+                    if (std::abs(rc - 1.) > ccmax) {
                         ipup = miter;
-                    if (nst >= nslp + msbp)
+                    }
+                    if (nst >= nslp + msbp) {
                         ipup = miter;
+                    }
                     tn += h;
-                    for (j = nq; j >= 1; j--)
+                    for (j = nq; j >= 1; j--) {
                         for (i1 = j; i1 <= nq; i1++) {
                             yp1 = yh[i1];
                             yp2 = yh[i1 + 1];
-                            for (i = 1; i <= n; i++)
+                            for (i = 1; i <= n; i++) {
                                 yp1[i] += yp2[i];
+                            }
                         }
+                    }
                     pnorm = vmnorm(n, yh[1], ewt);
 
                     correction(neq, y, f, &corflag, pnorm, &del, &delp, &told, &ncf, &rh, &m, _data);
-                    if (corflag == 0)
+                    if (corflag == 0) {
                         break;
+                    }
                     if (corflag == 1) {
                         rh = std::max(rh, hmin / std::abs(h));
                         scaleh(&rh, &pdh);
@@ -542,17 +580,19 @@ namespace lsoda
                         jstart = 1;
                         return;
                     }
-                }		/* end inner while ( corrector loop )   */
+                } /* end inner while ( corrector loop )   */
         /*
            The corrector has converged.  jcur is set to 0
            to signal that the Jacobian involved may need updating later.
            The local error test is done now.
         */
                 jcur = 0;
-                if (m == 0)
+                if (m == 0) {
                     dsm = del / tesco[nq][2];
-                if (m > 0)
+                }
+                if (m > 0) {
                     dsm = vmnorm(n, acor, ewt) / tesco[nq][2];
+                }
                 if (dsm <= 1.) {
                     /*
                        After a successful step, update the yh array.
@@ -575,8 +615,9 @@ namespace lsoda
                     for (j = 1; j <= l; j++) {
                         yp1 = yh[j];
                         r = el[j];
-                        for (i = 1; i <= n; i++)
+                        for (i = 1; i <= n; i++) {
                             yp1[i] += r * acor[i];
+                        }
                     }
                     icount--;
                     if (icount < 0) {
@@ -597,8 +638,9 @@ namespace lsoda
                         rhup = 0.;
                         if (l != lmax) {
                             yp1 = yh[lmax];
-                            for (i = 1; i <= n; i++)
+                            for (i = 1; i <= n; i++) {
                                 savf[i] = acor[i] - yp1[i];
+                            }
                             dup = vmnorm(n, savf, ewt) / tesco[nq][3];
                             exup = 1. / (T)(l + 1);
                             rhup = 1. / (1.4 * std::pow(dup, exup) + 0.0000014);
@@ -632,14 +674,15 @@ namespace lsoda
                             endstoda();
                             break;
                         }
-                    }	/* end if ( ialth == 0 )   */
+                    } /* end if ( ialth == 0 )   */
                     if (ialth > 1 || l == lmax) {
                         endstoda();
                         break;
                     }
                     yp1 = yh[lmax];
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         yp1[i] = acor[i];
+                    }
                     endstoda();
                     break;
                 }
@@ -654,13 +697,15 @@ namespace lsoda
                 else {
                     kflag--;
                     tn = told;
-                    for (j = nq; j >= 1; j--)
+                    for (j = nq; j >= 1; j--) {
                         for (i1 = j; i1 <= nq; i1++) {
                             yp1 = yh[i1];
                             yp2 = yh[i1 + 1];
-                            for (i = 1; i <= n; i++)
+                            for (i = 1; i <= n; i++) {
                                 yp1[i] -= yp2[i];
+                            }
                         }
+                    }
                     rmax = 2.;
                     if (std::abs(h) <= hmin * 1.00001) {
                         kflag = -1;
@@ -672,8 +717,9 @@ namespace lsoda
                         rhup = 0.;
                         orderswitch(&rhup, dsm, &pdh, &rh, &orderflag);
                         if (orderflag == 1 || orderflag == 0) {
-                            if (orderflag == 0)
+                            if (orderflag == 0) {
                                 rh = std::min(rh, 0.2);
+                            }
                             rh = std::max(rh, hmin / std::abs(h));
                             scaleh(&rh, &pdh);
                         }
@@ -706,25 +752,28 @@ namespace lsoda
                             rh = std::max(hmin / std::abs(h), rh);
                             h *= rh;
                             yp1 = yh[1];
-                            for (i = 1; i <= n; i++)
+                            for (i = 1; i <= n; i++) {
                                 y[i] = yp1[i];
+                            }
                             f(tn, y + 1, savf + 1, _data);
                             nfe++;
                             yp1 = yh[2];
-                            for (i = 1; i <= n; i++)
+                            for (i = 1; i <= n; i++) {
                                 yp1[i] = h * savf[i];
+                            }
                             ipup = miter;
                             ialth = 5;
-                            if (nq == 1)
+                            if (nq == 1) {
                                 continue;
+                            }
                             nq = 1;
                             l = 2;
                             resetcoeff();
                             continue;
                         }
-                    }	/* end else -- kflag <= -3 */
-                }		/* end error failure handling   */
-            }			/* end outer while   */
+                    } /* end else -- kflag <= -3 */
+                } /* end error failure handling   */
+            } /* end outer while   */
 
         }/* end stoda   */
 
@@ -734,20 +783,24 @@ namespace lsoda
 
             switch (itol) {
                 case 1:
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         ewt[i] = rtol[1] * std::abs(ycur[i]) + atol[1];
+                    }
                     break;
                 case 2:
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         ewt[i] = rtol[1] * std::abs(ycur[i]) + atol[i];
+                    }
                     break;
                 case 3:
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         ewt[i] = rtol[i] * std::abs(ycur[i]) + atol[1];
+                    }
                     break;
                 case 4:
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         ewt[i] = rtol[i] * std::abs(ycur[i]) + atol[i];
+                    }
                     break;
             }
 
@@ -755,8 +808,8 @@ namespace lsoda
 
         void intdy(T t, ptrdiff_t k, T *dky, ptrdiff_t *iflag)
         {
-            ptrdiff_t             i, ic, j, jj, jp1;
-            T          c, r, s, tp;
+            ptrdiff_t i, ic, j, jj, jp1;
+            T c, r, s, tp;
 
             *iflag = 0;
             if (k < 0 || k > nq) {
@@ -772,34 +825,40 @@ namespace lsoda
             }
             s = (t - tn) / h;
             ic = 1;
-            for (jj = l - k; jj <= nq; jj++)
+            for (jj = l - k; jj <= nq; jj++) {
                 ic *= jj;
+            }
             c = (T)ic;
             yp1 = yh[l];
-            for (i = 1; i <= n; i++)
+            for (i = 1; i <= n; i++) {
                 dky[i] = c * yp1[i];
+            }
             for (j = nq - 1; j >= k; j--) {
                 jp1 = j + 1;
                 ic = 1;
-                for (jj = jp1 - k; jj <= j; jj++)
+                for (jj = jp1 - k; jj <= j; jj++) {
                     ic *= jj;
+                }
                 c = (T)ic;
                 yp1 = yh[jp1];
-                for (i = 1; i <= n; i++)
+                for (i = 1; i <= n; i++) {
                     dky[i] = c * yp1[i] + s * dky[i];
+                }
             }
-            if (k == 0)
+            if (k == 0) {
                 return;
+            }
             r = std::pow(h, (T)(-k));
-            for (i = 1; i <= n; i++)
+            for (i = 1; i <= n; i++) {
                 dky[i] *= r;
+            }
 
         } /* end intdy   */
 
         void cfode(ptrdiff_t meth)
         {
             ptrdiff_t i, nq, nqm1, nqp1;
-            T agamq, fnq, fnqm1, pc[13], pptrdiff_t, ragq, rqfac, rq1fac, tsign, xpin;
+            T agamq, fnq, fnqm1, pc[13], pint, ragq, rqfac, rq1fac, tsign, xpin;
 
             if (meth == 1) {
                 elco[1][1] = 1.;
@@ -827,36 +886,39 @@ namespace lsoda
                        Form coefficients of p(x)*(x+nq-1).
                     */
                     pc[nq] = 0.;
-                    for (i = nq; i >= 2; i--)
+                    for (i = nq; i >= 2; i--) {
                         pc[i] = pc[i - 1] + fnqm1 * pc[i];
+                    }
                     pc[1] = fnqm1 * pc[1];
                     /*
                        Compute ptrdiff_tegral, -1 to 0, of p(x) and x*p(x).
                     */
-                    pptrdiff_t = pc[1];
+                    pint = pc[1];
                     xpin = pc[1] / 2.;
                     tsign = 1.;
                     for (i = 2; i <= nq; i++) {
                         tsign = -tsign;
-                        pptrdiff_t += tsign * pc[i] / (T)i;
+                        pint += tsign * pc[i] / (T)i;
                         xpin += tsign * pc[i] / (T)(i + 1);
                     }
                     /*
                        Store coefficients in elco and tesco.
                     */
-                    elco[nq][1] = pptrdiff_t * rq1fac;
+                    elco[nq][1] = pint * rq1fac;
                     elco[nq][2] = 1.;
-                    for (i = 2; i <= nq; i++)
+                    for (i = 2; i <= nq; i++) {
                         elco[nq][i + 1] = rq1fac * pc[i] / (T)i;
+                    }
                     agamq = rqfac * xpin;
                     ragq = 1. / agamq;
                     tesco[nq][2] = ragq;
-                    if (nq < 12)
+                    if (nq < 12) {
                         tesco[nqp1][1] = ragq * rqfac / (T)nqp1;
+                    }
                     tesco[nqm1][3] = ragq;
-                }		/* end for   */
+                } /* end for   */
                 return;
-            }			/* end if ( meth == 1 )   */
+            } /* end if ( meth == 1 ) */
             /*
                meth = 2.
             */
@@ -876,14 +938,16 @@ namespace lsoda
                    Form coefficients of p(x)*(x+nq).
                 */
                 pc[nqp1] = 0.;
-                for (i = nq + 1; i >= 2; i--)
+                for (i = nq + 1; i >= 2; i--) {
                     pc[i] = pc[i - 1] + fnq * pc[i];
+                }
                 pc[1] *= fnq;
                 /*
                    Store coefficients in elco and tesco.
                 */
-                for (i = 1; i <= nqp1; i++)
+                for (i = 1; i <= nqp1; i++) {
                     elco[nq][i] = pc[i] / pc[2];
+                }
                 elco[nq][2] = 1.;
                 tesco[nq][1] = rq1fac;
                 tesco[nq][2] = ((T)nqp1) / elco[nq][1];
@@ -892,12 +956,12 @@ namespace lsoda
             }
             return;
 
-        }				/* end cfode   */
+        } /* end cfode   */
 
         void scaleh(T *rh, T *pdh)
         {
-            T          r;
-            ptrdiff_t             j, i;
+            T r;
+            ptrdiff_t j, i;
             /*
                If h is being changed, the h ratio rh is checked against rmax, hmin,
                and hmxi, and the yh array is rescaled.  ialth is set to l = nq + 1
@@ -923,19 +987,18 @@ namespace lsoda
             for (j = 2; j <= l; j++) {
                 r *= *rh;
                 yp1 = yh[j];
-                for (i = 1; i <= n; i++)
+                for (i = 1; i <= n; i++) {
                     yp1[i] *= r;
+                }
             }
             h *= *rh;
             rc *= *rh;
             ialth = l;
 
-        }				/* end scaleh   */
+        } /* end scaleh   */
 
         void prja(ptrdiff_t neq, T *y, funcT f, const void *_data)
         {
-            ptrdiff_t             i, ier, j;
-            T          fac, hl0, r, r0, yj;
             /*
                prja is called by stoda to compute and process the matrix
                P = I - h * el[1] * J, where J is an approximation to the Jacobian.
@@ -947,6 +1010,8 @@ namespace lsoda
                of linear systems with p as coefficient matrix.  This is done
                by dgefa if miter = 2, and by dgbfa if miter = 5.
             */
+            ptrdiff_t i, ier, j;
+            T fac, hl0, r, r0, yj;
             nje++;
             ierpj = 0;
             jcur = 1;
@@ -961,16 +1026,18 @@ namespace lsoda
             if (miter == 2) {
                 fac = vmnorm(n, savf, ewt);
                 r0 = 1000. * std::abs(h) * ETA * ((T)n) * fac;
-                if (r0 == 0.)
+                if (r0 == 0.) {
                     r0 = 1.;
+                }
                 for (j = 1; j <= n; j++) {
                     yj = y[j];
                     r = std::max(sqrteta * std::abs(yj), r0 / ewt[j]);
                     y[j] += r;
                     fac = -hl0 / r;
                     f(tn, y + 1, acor + 1, _data);
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         wm[i][j] = (acor[i] - savf[i]) * fac;
+                    }
                     y[j] = yj;
                 }
                 nfe += n;
@@ -981,8 +1048,9 @@ namespace lsoda
                 /*
                    Add identity matrix.
                 */
-                for (i = 1; i <= n; i++)
+                for (i = 1; i <= n; i++) {
                     wm[i][i] += 1.;
+                }
                 /*
                    Do LU decomposition on P.
                 */
@@ -991,10 +1059,10 @@ namespace lsoda
                     ierpj = 1;
                 return;
             }
-        }				/* end prja   */
+        } /* end prja   */
 
         T vmnorm(ptrdiff_t n, T *v, T *w)
-
+        {
             /*
                This function routine computes the weighted max-norm
                of the vector of length n contained in the array v, with weights
@@ -1003,19 +1071,19 @@ namespace lsoda
                vmnorm = max( i = 1, ..., n ) std::abs( v[i] ) * w[i].
             */
 
-        {
-            ptrdiff_t             i;
-            T          vm;
+            ptrdiff_t i;
+            T vm;
 
             vm = 0.;
-            for (i = 1; i <= n; i++)
+            for (i = 1; i <= n; i++) {
                 vm = std::max(vm, std::abs(v[i]) * w[i]);
+            }
             return vm;
 
         }
 
         T fnorm(ptrdiff_t n, T **a, T *w)
-
+        {
             /*
                This subroutine computes the norm of a full n by n matrix,
                stored in the array a, that is consistent with the weighted max-norm
@@ -1024,16 +1092,16 @@ namespace lsoda
                   fnorm = max(i=1,...,n) ( w[i] * sum(j=1,...,n) std::abs( a[i][j] ) / w[j] )
             */
 
-        {
-            ptrdiff_t             i, j;
-            T          an, sum, *ap1;
+            ptrdiff_t i, j;
+            T an, sum, *ap1;
 
             an = 0.;
             for (i = 1; i <= n; i++) {
                 sum = 0.;
                 ap1 = a[i];
-                for (j = 1; j <= n; j++)
+                for (j = 1; j <= n; j++) {
                     sum += std::abs(ap1[j]) / w[j];
+                }
                 an = std::max(an, sum * w[i]);
             }
             return an;
@@ -1049,8 +1117,8 @@ namespace lsoda
             */
 
         {
-            ptrdiff_t             i;
-            T          rm, rate, dcon;
+            ptrdiff_t i;
+            T rm, rate, dcon;
 
             /*
                Up to maxcor corrector iterations are taken.  A convergence test is
@@ -1064,8 +1132,9 @@ namespace lsoda
             rate = 0.;
             *del = 0.;
             yp1 = yh[1];
-            for (i = 1; i <= n; i++)
+            for (i = 1; i <= n; i++) {
                 y[i] = yp1[i];
+            }
             f(tn, y + 1, savf + 1, _data);
             nfe++;
             /*
@@ -1086,9 +1155,10 @@ namespace lsoda
                             return;
                         }
                     }
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         acor[i] = 0.;
-                }		/* end if ( *m == 0 )   */
+                    }
+                } /* end if ( *m == 0 )   */
                 if (miter == 0) {
                     /*
                        In case of functional iteration, update y directly from
@@ -1114,8 +1184,9 @@ namespace lsoda
                  */
                 else {
                     yp1 = yh[2];
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         y[i] = h * savf[i] - (yp1[i] + acor[i]);
+                    }
                     solsy(y);
                     *del = vmnorm(n, y, ewt);
                     yp1 = yh[1];
@@ -1123,7 +1194,7 @@ namespace lsoda
                         acor[i] += y[i];
                         y[i] = yp1[i] + el[1] * acor[i];
                     }
-                }		/* end chord method   */
+                } /* end chord method   */
         /*
            Test for convergence.  If *m > 0, an estimate of the convergence
            rate constant is stored in crate, and this is used in the test.
@@ -1136,13 +1207,15 @@ namespace lsoda
            On convergence, form pdest = local maximum Lipschitz constant
            estimate.  pdlast is the most recent nonzero estimate.
         */
-                if (*del <= 100. * pnorm * ETA)
+                if (*del <= 100. * pnorm * ETA) {
                     break;
+                }
                 if (*m != 0 || meth != 1) {
                     if (*m != 0) {
                         rm = 1024.0;
-                        if (*del <= (1024. * *delp))
+                        if (*del <= (1024. * *delp)) {
                             rm = *del / *delp;
+                        }
                         rate = std::max(rate, rm);
                         crate = std::max(0.2 * crate, rm);
                     }
@@ -1175,8 +1248,9 @@ namespace lsoda
                     rate = 0.;
                     *del = 0.;
                     yp1 = yh[1];
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         y[i] = yp1[i];
+                    }
                     f(tn, y + 1, savf + 1, _data);
                     nfe++;
                 }
@@ -1188,23 +1262,25 @@ namespace lsoda
                     f(tn, y + 1, savf + 1, _data);
                     nfe++;
                 }
-            }			/* end while   */
-        }				/* end correction   */
+            } /* end while   */
+        } /* end correction   */
 
         void corfailure(T *told, T *rh, ptrdiff_t *ncf, ptrdiff_t *corflag)
         {
-            ptrdiff_t             j, i1, i;
+            ptrdiff_t j, i1, i;
 
             ncf++;
             rmax = 2.;
             tn = *told;
-            for (j = nq; j >= 1; j--)
+            for (j = nq; j >= 1; j--) {
                 for (i1 = j; i1 <= nq; i1++) {
                     yp1 = yh[i1];
                     yp2 = yh[i1 + 1];
-                    for (i = 1; i <= n; i++)
+                    for (i = 1; i <= n; i++) {
                         yp1[i] -= yp2[i];
+                    }
                 }
+            }
             if (std::abs(h) <= hmin * 1.00001 || *ncf == mxncf) {
                 *corflag = 2;
                 return;
@@ -1233,16 +1309,17 @@ namespace lsoda
                 printf("solsy -- miter != 2\n");
                 return;
             }
-            if (miter == 2)
+            if (miter == 2) {
                 dgesl(wm, n, ipvt, y, 0);
+            }
             return;
 
         }
 
         void methodswitch(T dsm, T pnorm, T *pdh, T *rh)
         {
-            ptrdiff_t             lm1, lm1p1, lm2, lm2p1, nqm1, nqm2;
-            T          rh1, rh2, rh1it, exm2, dm2, exm1, dm1, alpha, exsm;
+            ptrdiff_t lm1, lm1p1, lm2, lm2p1, nqm1, nqm2;
+            T rh1, rh2, rh1it, exm2, dm2, exm1, dm1, alpha, exsm;
 
             /*
                We are current using an Adams method.  Consider switching to bdf.
@@ -1263,11 +1340,13 @@ namespace lsoda
                The step size advantage must be at least ratio = 5 to switch.
             */
             if (meth == 1) {
-                if (nq > 5)
+                if (nq > 5) {
                     return;
+                }
                 if (dsm <= (100. * pnorm * ETA) || pdest == 0.) {
-                    if (irflag == 0)
+                    if (irflag == 0) {
                         return;
+                    }
                     rh2 = 2.;
                     nqm2 = std::min(nq, mxords);
                 }
@@ -1276,8 +1355,9 @@ namespace lsoda
                     rh1 = 1. / (1.2 * std::pow(dsm, exsm) + 0.0000012);
                     rh1it = 2. * rh1;
                     *pdh = pdlast * std::abs(h);
-                    if ((*pdh * rh1) > 0.00001)
+                    if ((*pdh * rh1) > 0.00001) {
                         rh1it = sm1[nq] / *pdh;
+                    }
                     rh1 = std::min(rh1, rh1it);
                     if (nq > mxords) {
                         nqm2 = mxords;
@@ -1292,8 +1372,9 @@ namespace lsoda
                         rh2 = 1. / (1.2 * std::pow(dm2, exsm) + 0.0000012);
                         nqm2 = nq;
                     }
-                    if (rh2 < ratio * rh1)
+                    if (rh2 < ratio * rh1) {
                         return;
+                    }
                 }
                 /*
                    The method switch test passed.  Reset relevant quantities for bdf.
@@ -1306,7 +1387,7 @@ namespace lsoda
                 nq = nqm2;
                 l = nq + 1;
                 return;
-            }			/* end if ( meth == 1 )   */
+            } /* end if ( meth == 1 )   */
             /*
                We are currently using a bdf method, considering switching to Adams.
                Compute the step size we could have (ideally) used on this step,
@@ -1334,16 +1415,19 @@ namespace lsoda
             }
             rh1it = 2. * rh1;
             *pdh = pdnorm * std::abs(h);
-            if ((*pdh * rh1) > 0.00001)
+            if ((*pdh * rh1) > 0.00001) {
                 rh1it = sm1[nqm1] / *pdh;
+            }
             rh1 = std::min(rh1, rh1it);
             rh2 = 1. / (1.2 * std::pow(dsm, exsm) + 0.0000012);
-            if ((rh1 * ratio) < (5. * rh2))
+            if ((rh1 * ratio) < (5. * rh2)) {
                 return;
+            }
             alpha = std::max(0.001, rh1);
             dm1 *= std::pow(alpha, exm1);
-            if (dm1 <= 1000. * ETA * pnorm)
+            if (dm1 <= 1000. * ETA * pnorm) {
                 return;
+            }
             /*
                The switch test passed.  Reset relevant quantities for Adams.
             */
@@ -1355,16 +1439,17 @@ namespace lsoda
             nq = nqm1;
             l = nq + 1;
 
-        }				/* end methodswitch   */
+        } /* end methodswitch   */
 
         void endstoda()
         {
-            T          r;
-            ptrdiff_t             i;
+            T r;
+            ptrdiff_t i;
 
             r = 1. / tesco[nqu][2];
-            for (i = 1; i <= n; i++)
+            for (i = 1; i <= n; i++) {
                 acor[i] *= r;
+            }
             hold = h;
             jstart = 1;
 
@@ -1387,8 +1472,8 @@ namespace lsoda
             */
 
         {
-            ptrdiff_t             newq, i;
-            T          exsm, rhdn, rhsm, ddn, exdn, r;
+            ptrdiff_t newq, i;
+            T exsm, rhdn, rhsm, ddn, exdn, r;
 
             *orderflag = 0;
 
@@ -1406,11 +1491,13 @@ namespace lsoda
             */
             if (meth == 1) {
                 *pdh = std::max(std::abs(h) * pdlast, 0.000001);
-                if (l < lmax)
+                if (l < lmax) {
                     *rhup = std::min(*rhup, sm1[l] / *pdh);
+                }
                 rhsm = std::min(rhsm, sm1[nq] / *pdh);
-                if (nq > 1)
+                if (nq > 1) {
                     rhdn = std::min(rhdn, sm1[nq - 1] / *pdh);
+                }
                 pdest = 0.;
             }
             if (rhsm >= *rhup) {
@@ -1439,8 +1526,9 @@ namespace lsoda
                         nq = l;
                         l = nq + 1;
                         yp1 = yh[l];
-                        for (i = 1; i <= n; i++)
+                        for (i = 1; i <= n; i++) {
                             yp1[i] = acor[i] * r;
+                        }
                         *orderflag = 2;
                         return;
                     }
@@ -1454,11 +1542,12 @@ namespace lsoda
                If meth = 1 and h is restricted by stability, bypass 10 percent test.
             */
             if (meth == 1) {
-                if ((*rh * *pdh * 1.00001) < sm1[newq])
+                if ((*rh * *pdh * 1.00001) < sm1[newq]) {
                     if (kflag == 0 && *rh < 1.1) {
                         ialth = 3;
                         return;
                     }
+                }
             }
             else {
                 if (kflag == 0 && *rh < 1.1) {
@@ -1466,8 +1555,9 @@ namespace lsoda
                     return;
                 }
             }
-            if (kflag <= -2)
+            if (kflag <= -2) {
                 *rh = std::min(*rh, 0.2);
+            }
             /*
                If there is a change of order, reset nq, l, and the coefficients.
                In any case h is reset according to rh and the yh array is rescaled.
@@ -1481,7 +1571,7 @@ namespace lsoda
             l = nq + 1;
             *orderflag = 2;
 
-        }				/* end orderswitch   */
+        } /* end orderswitch   */
 
         void resetcoeff()
             /*
@@ -1489,12 +1579,13 @@ namespace lsoda
                whenever the order nq is changed, or at the start of the problem.
             */
         {
-            ptrdiff_t             i;
+            ptrdiff_t i;
             T *ep1;
 
             ep1 = elco[nq];
-            for (i = 1; i <= l; i++)
+            for (i = 1; i <= l; i++) {
                 el[i] = ep1[i];
+            }
             rc = rc * el[1] / el0;
             el0 = el[1];
             conit = 0.5 / (T)(nq + 2);
@@ -1525,13 +1616,13 @@ namespace lsoda
             lsoda(f, neq, y, t, tout, itol, rtol, atol, itask, istate,
                   iopt, jt, iwork1, iwork2, iwork5, iwork6, iwork7, iwork8,
                   iwork9, rwork1, rwork5, rwork6, rwork7, _data)
-                funcT       f;
+                funcT f;
                 void           *_data;
 
-                ptrdiff_t             neq, itol, itask, *istate, iopt, jt;
-                ptrdiff_t             iwork1, iwork2, iwork5, iwork6, iwork7, iwork8, iwork9;
-                T         *y, *t, tout, *rtol, *atol;
-                T          rwork1, rwork5, rwork6, rwork7;
+                ptrdiff_t neq, itol, itask, *istate, iopt, jt;
+                ptrdiff_t iwork1, iwork2, iwork5, iwork6, iwork7, iwork8, iwork9;
+                T *y, *t, tout, *rtol, *atol;
+                T rwork1, rwork5, rwork6, rwork7;
             */
             /*
                If the user does not supply any of these values, the calling program
@@ -1709,7 +1800,7 @@ namespace lsoda
                             terminate(istate);
                             return;
                         }
-                    }	/* end if ( *istate == 1 )  */
+                    } /* end if ( *istate == 1 )  */
                     hmax = rwork6;
                     if (hmax < 0.) {
                         fprintf(stderr, "[lsoda] hmax < 0.\n");
@@ -1717,16 +1808,17 @@ namespace lsoda
                         return;
                     }
                     hmxi = 0.;
-                    if (hmax > 0)
+                    if (hmax > 0) {
                         hmxi = 1. / hmax;
+                    }
                     hmin = rwork7;
                     if (hmin < 0.) {
                         fprintf(stderr, "[lsoda] hmin < 0.\n");
                         terminate(istate);
                         return;
                     }
-                }		/* end else   *//* end iopt = 1   */
-            }			/* end if ( *istate == 1 || *istate == 3 )   */
+                } /* end else   *//* end iopt = 1   */
+            } /* end if ( *istate == 1 || *istate == 3 )   */
             /*
                If *istate = 1, meth is initialized to 1.
 
@@ -1748,8 +1840,9 @@ namespace lsoda
                     terminate(istate);
                     return;
                 }
-                for (i = 1; i <= lenyh; i++)
+                for (i = 1; i <= lenyh; i++) {
                     yh[i] = (T *)calloc(1 + nyh, sizeof(T));
+                }
 
                 wm = (T **)calloc(1 + nyh, sizeof(*wm));
                 if (wm == NULL) {
@@ -1758,8 +1851,9 @@ namespace lsoda
                     terminate(istate);
                     return;
                 }
-                for (i = 1; i <= nyh; i++)
+                for (i = 1; i <= nyh; i++) {
                     wm[i] = (T *)calloc(1 + nyh, sizeof(T));
+                }
 
                 ewt = (T *)calloc(1 + nyh, sizeof(T));
                 if (ewt == NULL) {
@@ -1807,8 +1901,9 @@ namespace lsoda
                 rtoli = rtol[1];
                 atoli = atol[1];
                 for (i = 1; i <= n; i++) {
-                    if (itol >= 3)
+                    if (itol >= 3) {
                         rtoli = rtol[i];
+                    }
                     if (itol == 2 || itol == 4)
                         atoli = atol[i];
                     if (rtoli < 0.) {
@@ -1823,8 +1918,8 @@ namespace lsoda
                         freevectors();
                         return;
                     }
-                }		/* end for   */
-            }			/* end if ( *istate == 1 || *istate == 3 )   */
+                } /* end for   */
+            } /* end if ( *istate == 1 || *istate == 3 )   */
             /*
                If *istate = 3, set flag to signal parameter changes to stoda.
             */
@@ -1875,8 +1970,9 @@ namespace lsoda
                    Load the initial value vector in yh.
                 */
                 yp1 = yh[1];
-                for (i = 1; i <= n; i++)
+                for (i = 1; i <= n; i++) {
                     yp1[i] = y[i];
+                }
                 /*
                    Load and invert the ewt array.  ( h is temporarily set to 1. )
                 */
@@ -1923,8 +2019,9 @@ namespace lsoda
                     }
                     tol = rtol[1];
                     if (itol > 2) {
-                        for (i = 2; i <= n; i++)
+                        for (i = 2; i <= n; i++) {
                             tol = std::max(tol, rtol[i]);
+                        }
                     }
                     if (tol <= 0.) {
                         atoli = atol[1];
@@ -1943,21 +2040,23 @@ namespace lsoda
                     h0 = 1. / sqrt(sum);
                     h0 = std::min(h0, tdist);
                     h0 = h0 * ((tout - *t >= 0.) ? 1. : -1.);
-                }		/* end if ( h0 == 0. )   */
+                } /* end if ( h0 == 0. )   */
                 /*
                    Adjust h0 if necessary to meet hmax bound.
                 */
                 rh = std::abs(h0) * hmxi;
-                if (rh > 1.)
+                if (rh > 1.) {
                     h0 /= rh;
+                }
                 /*
                    Load h with h0 and scale yh[2] by h0.
                 */
                 h = h0;
                 yp1 = yh[2];
-                for (i = 1; i <= n; i++)
+                for (i = 1; i <= n; i++) {
                     yp1[i] *= h0;
-            }			/* if ( *istate == 1 )   */
+                }
+            } /* if ( *istate == 1 )   */
             /*
                Block d.
                The next code block is for continuation calls only ( *istate = 2 or 3 )
@@ -2041,14 +2140,16 @@ namespace lsoda
                             return;
                         }
                         tnext = tn + h * (1. + 4. * ETA);
-                        if ((tnext - tcrit) * h <= 0.)
+                        if ((tnext - tcrit) * h <= 0.) {
                             break;
+                        }
                         h = (tcrit - tn) * (1. - 4. * ETA);
-                        if (*istate == 2)
+                        if (*istate == 2) {
                             jstart = -2;
+                        }
                         break;
-                }		/* end switch   */
-            }			/* end if ( *istate == 2 || *istate == 3 )   */
+                } /* end switch   */
+            } /* end if ( *istate == 2 || *istate == 3 )   */
             /*
                Block e.
                The next block is normally executed for all calls and contains
@@ -2136,24 +2237,28 @@ namespace lsoda
                     if (meth != mused) {
                         tsw = tn;
                         maxord = mxordn;
-                        if (meth == 2)
+                        if (meth == 2) {
                             maxord = mxords;
+                        }
                         jstart = -1;
                         if (ixpr) {
-                            if (meth == 2)
+                            if (meth == 2) {
                                 fprintf(stderr, "[lsoda] a switch to the stiff method has occurred ");
-                            if (meth == 1)
+                            }
+                            if (meth == 1) {
                                 fprintf(stderr, "[lsoda] a switch to the nonstiff method has occurred");
+                            }
                             fprintf(stderr, "at t = %g, tentative step size h = %g, step nst = %td\n", tn, h, nst);
                         }
-                    }	/* end if ( meth != mused )   */
+                    } /* end if ( meth != mused )   */
                     /*
                        itask = 1.
                        If tout has been reached, ptrdiff_terpolate.
                     */
                     if (itask == 1) {
-                        if ((tn - tout) * h < 0.)
+                        if ((tn - tout) * h < 0.) {
                             continue;
+                        }
                         intdy(tout, 0, y, &iflag);
                         *t = tout;
                         *istate = 2;
@@ -2200,13 +2305,14 @@ namespace lsoda
                                 return;
                             }
                             tnext = tn + h * (1. + 4. * ETA);
-                            if ((tnext - tcrit) * h <= 0.)
+                            if ((tnext - tcrit) * h <= 0.) {
                                 continue;
+                            }
                             h = (tcrit - tn) * (1. - 4. * ETA);
                             jstart = -2;
                             continue;
                         }
-                    }	/* end if ( itask == 4 )   */
+                    } /* end if ( itask == 4 )   */
                     /*
                        itask = 5.
                        See if tcrit was reached and jump to exit.
@@ -2217,7 +2323,7 @@ namespace lsoda
                         successreturn(y, t, itask, ihit, tcrit, istate);
                         return;
                     }
-                }		/* end if ( kflag == 0 )   */
+                } /* end if ( kflag == 0 )   */
                 /*
                    kflag = -1, error test failed repeatedly or with std::abs(h) = hmin.
                    kflag = -2, convergence failed repeatedly or with std::abs(h) = hmin.
@@ -2245,8 +2351,8 @@ namespace lsoda
                     }
                     terminate2(y, t);
                     return;
-                }		/* end if ( kflag == -1 || kflag == -2 )   */
-            }			/* end while   */
+                } /* end if ( kflag == -1 || kflag == -2 )   */
+            } /* end while   */
 
         } /* end lsoda   */
 

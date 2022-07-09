@@ -1,3 +1,11 @@
+/*
+ * Common routines that are frequently used for numerical
+ * integration of ODEs.
+ *
+ * Vincent Lovero
+ *
+ */
+
 #ifndef _ODE_COMMON_H
 #define _ODE_COMMON_H
 
@@ -12,7 +20,7 @@
 #include <array>
 
 
-// error print macros
+ // error print macros
 #define PRINT_ERROR_NON_FINITE() std::cerr << "[ERROR]: NON-FINITE VALUES ENCOUNTERED\n"
 #define PRINT_ERROR_MESSAGE(s) std::cerr << "[ERROR]: " << s << '\n';
 
@@ -42,6 +50,7 @@ struct ODEResult
     size_t jeval;
     size_t fails;
     size_t steps;
+    // size_t numLU;
     size_t status;
 };
 
@@ -49,23 +58,8 @@ struct ODEResult
 // RK error norm
 // Using weighted root mean square where the weight is given by
 // eps_abs + eps_rel * max(|yn|, |yn1|)
-template <const size_t n, typename T>
-__attribute__((always_inline)) T err_norm(const T delta_y[n], const T yn[n], const T yn1[n], const T atol, const T rtol)
-{
-    T _yn, _yn1, val, s = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        _yn1 = std::abs(yn1[i]);
-        _yn = std::abs(yn[i]);
-        val = delta_y[i] / (atol + rtol * std::max(_yn, _yn1));
-        s += val * val;
-    }
-    return std::sqrt(s / n);
-}
-
-
-// RK error norm
 template <typename T>
-__attribute__((always_inline)) T gerr_norm(const RP(T) delta_y, const RP(T) yn, const RP(T) yn1, const T atol, const T rtol, const size_t n)
+__attribute__((always_inline)) T errorNorm(const RP(T) delta_y, const RP(T) yn, const RP(T) yn1, const T atol, const T rtol, const size_t n)
 {
     T _yn, _yn1, val, s = 0.0;
     for (size_t i = 0; i < n; i++) {
@@ -79,7 +73,7 @@ __attribute__((always_inline)) T gerr_norm(const RP(T) delta_y, const RP(T) yn, 
 
 // compute eulclidean norm
 template <typename T>
-__attribute__((always_inline)) T enorm(const RP(T) x, const size_t n)
+__attribute__((always_inline)) T norm2(const RP(T) x, const size_t n)
 {
     T s = 0.0;
     for (size_t i = 0; i < n; i++) {

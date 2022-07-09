@@ -1,3 +1,11 @@
+/*
+ * Implementation of the three stage RadauIIA of order 5 described in [1].
+ *
+ * Vincent Lovero
+ *
+ * [1] E. Hairer, G. Wanner, “Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems”
+ */
+
 #ifndef ODEPACK_RADAU5_H
 #define ODEPACK_RADAU5_H
 
@@ -485,7 +493,7 @@ namespace radau5iia
 
             // compute error norm and scaling factor for step-size
             solveLUR(LUR, temp, ipiv, n, 1); // error vector stored in temp
-            norm = gerr_norm<T>(temp, yn, yn1, atol, rtol, n);
+            norm = errorNorm<T>(temp, yn, yn1, atol, rtol, n);
             safety = 0.9 * (T)(2 * NEWTON_MAXITER + 1) / (T)(2 * NEWTON_MAXITER + niter);
 
             if (rejected && ((T)1 < norm) && (min_step < dtabs)) {
@@ -497,7 +505,7 @@ namespace radau5iia
                     temp[i] = ZError[i] + Q[i];
                 }
                 solveLUR(LUR, temp, ipiv, n, 1);
-                norm = gerr_norm<T>(temp, yn, yn1, atol, rtol, n);
+                norm = errorNorm<T>(temp, yn, yn1, atol, rtol, n);
             }
 
             if (((T)1 < norm) && (min_step < dtabs)) {

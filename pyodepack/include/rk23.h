@@ -1,3 +1,12 @@
+/*
+ * Modified butcher table and interpolant coefficients for the RK23
+ * method described in [1].
+ *
+ * Vincent Lovero
+ *
+ * [1] P. Bogacki, L.F. Shampine, “A 3(2) Pair of Runge-Kutta Formulas”, Appl. Math. Lett. Vol. 2, No. 4. pp. 321-325, 1989.
+ */
+
 #ifndef ODEPACK_RK23_H
 #define ODEPACK_RK23_H
 
@@ -5,7 +14,7 @@
 #include "rk.h"
 
 
-namespace bogakiShampine
+namespace bogackiShampine
 {
     template <typename T>
     constexpr std::array<T, 12> _getInterpolant()

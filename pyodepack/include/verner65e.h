@@ -1,3 +1,11 @@
+/*
+ * Implementation of Verner's efficient 6(5) RK pair described in [1].
+ *
+ * Vincent Lovero
+ *
+ * [1] Verner, J H (2013). Explicit Runge Kutta pairs with lower stage-order. Numerical Algorithms 65(3): 555–577
+ */
+
 #ifndef ODEPACK_VERNER65E_H
 #define ODEPACK_VERNER65E_H
 

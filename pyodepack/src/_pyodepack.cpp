@@ -1,3 +1,16 @@
+/*
+ * A python wrapper for various methods for numerically integrating ODEs.
+ *
+ * Vincent Lovero
+ *
+ * [1] E. Hairer, S. P. Norsett G. Wanner, “Solving Ordinary Differential Equations I: Nonstiff Problems”
+ * [2] E. Hairer, G. Wanner, “Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems”
+ * [3] Li, Heng http://lh3lh3.users.sourceforge.net/download/lsoda.c
+ * [4] Verner, J H (2013). Explicit Runge Kutta pairs with lower stage-order. Numerical Algorithms 65(3): 555–577
+ * [5] P. Bogacki, L.F. Shampine, “A 3(2) Pair of Runge-Kutta Formulas”, Appl. Math. Lett. Vol. 2, No. 4. pp. 321-325, 1989.
+ */
+
+
 #define NPY_NO_DEPRECATED_API NPY_1_22_API_VERSION
 #define PY_SSIZE_T_CLEAN
 #include "Python.h"
@@ -12,19 +25,12 @@
 #include "lsoda.h"
 #include "radau5.h"
 
+ // Create Fortran contiguous numpy array from python object (increase ref count if already farray)
+ // will be used later when support for user jacobian is added
 #define PyArray_FContiguousFromObject(op,type,min_depth,max_depth) PyArray_FromAny(op, PyArray_DescrFromType(type), min_depth, max_depth, NPY_ARRAY_FARRAY | NPY_ARRAY_ENSUREARRAY, NULL)
 
-#if defined(DEBUG)
 
-#define LINE() std::cerr << "[INFO]: " << __LINE__ << '\n'
-
-#else
-
-#define LINE()
-
-#endif
-
-// declare lapack functions that will be retrieved from scipy
+ // declare lapack functions that will be retrieved from scipy
 void (*sgetrf)(int *, int *, float *, int *, int *, int *);
 void (*dgetrf)(int *, int *, double *, int *, int *, int *);
 void (*cgetrf)(int *, int *, std::complex<float> *, int *, int *, int *);
@@ -56,7 +62,7 @@ bool importLapackRoutines()
     auto getPointerFromName = [&](const char *name, void **ptr) {
         obj = PyDict_GetItemString(d, name);
         c = PyObject_GetAttrString(obj, "_cpointer");
-        *ptr = getPointer(c);
+        *ptr = (c && obj) ? getPointer(c) : nullptr;
         Py_XDECREF(obj);
         Py_XDECREF(c);
     };
@@ -81,6 +87,10 @@ bool importLapackRoutines()
     getPointerFromName("cgetrs", (void **)(&cgetrs));
     getPointerFromName("zgetrs", (void **)(&zgetrs));
 
+    if (PyErr_Occurred()) {
+        return false;
+    }
+
     return true;
 }
 
@@ -88,7 +98,7 @@ template <typename funcT>
 inline ODEResult callMethod(int method, funcT f, double *y0, double *t, double *y, double min_step, double max_step, double h0, double rtol, double atol, size_t m, double *sphere, PyObject *pyargs, size_t n)
 {
     ODEResult result;
-    LINE();
+
     switch (method) {
         case 0:
             // LSODA
@@ -100,13 +110,13 @@ inline ODEResult callMethod(int method, funcT f, double *y0, double *t, double *
             break;
         case 2:
             // RK23
-            result = bogakiShampine::integrate<double, decltype(f)>(f, y0, t, y, min_step, max_step, h0, rtol, atol, n, m, sphere, (void *)pyargs);
+            result = bogackiShampine::integrate<double, decltype(f)>(f, y0, t, y, min_step, max_step, h0, rtol, atol, n, m, sphere, (void *)pyargs);
             break;
         case 3:
             // RKV98E
             result = verner98e::integrate<double, decltype(f)>(f, y0, t, y, min_step, max_step, h0, rtol, atol, n, m, sphere, (void *)pyargs);
             break;
-        case 5:
+        case 4:
             // radau5IIA
             result = radau5iia::integrate<double, decltype(f),
                 radau5iia::factorLU<double, dgetrf>,
@@ -216,6 +226,7 @@ PyObject *PySolveIVP(PyObject *self, PyObject *args, PyObject *kwargs)
     m = shape[0];
     n = shape[1];
 
+    // is there a cleaner way of writing this??
     if (isvoid) {
         auto f = [=](const double t, const RP(double) z, RP(double) o, const RP(void) a) {
             PyObject *pyz;
@@ -231,6 +242,14 @@ PyObject *PySolveIVP(PyObject *self, PyObject *args, PyObject *kwargs)
             }
             else {
                 Py_XDECREF(PyObject_CallFunction(pyf, "dOO", t, pyz, pyo));
+            }
+
+            PyObject *err = PyErr_Occurred();
+            if (err) {
+                // fill with nan to stop integrator from proceeding
+                for (size_t i = 0; i < n; i++) {
+                    o[i] = std::numeric_limits<double>::quiet_NaN();
+                }
             }
 
             Py_XDECREF(pyz);
@@ -299,12 +318,10 @@ error:
 
 PyDoc_STRVAR(
     PySolveIVP_doc,
-    "solveIVP(f, y0, teval, args=None, out=None, isvoid=False, atol=1e-6, rtol=1e-3, min_step=1e-6, max_step=1, window=None, method=1, full_output=False)\n"
+    "solveIVP(f, y0, teval, args=None, out=None, isvoid=False, atol=1.49012e-8, rtol=1.49012e-8, min_step=1e-6, max_step=None, window=None, method=0, full_output=False)\n"
     "--\n"
     "\n"
-    "Integrate IVP and evaluate at user supplied points.\n"
-    "Arguments: (timeout, flags=None)\n"
-    "Doc blahblah doc doc doc.");
+    "Integrate a system of ODEs.\n\n    Parameters\n    ----------\n    f : Callable\n        RHS of system\n    y0 : ArrayLike\n        _Initial conditions\n    teval : ArrayLike\n        points to evaluate solution at (must include initial time point t0)\n    args : tuple, optional\n        extra arguments for f(t, y), by default None\n    out : ndarray, optional\n        preallocated output array, by default None\n    isvoid : bool, optional\n        f does not return anything (performance booster), by default False\n    atol : float, optional\n        absolute error tolerance, by default 1.49012e-8\n    rtol : float, optional\n        relative error tolerance, by default 1.49012e-8\n    min_step : float, optional\n        minimum allowable step, by default 1e-6\n    max_step : float, optional\n        maximum allowable step, by default inf\n    window : ArrayLike, optional\n        computational window solution must stay inside, by default None\n    method : int, optional\n        which integration method to use, by default methods.LSODA ( == 0)\n    full_output : bool, optional\n        return dict with integration stats, by default False\n\n    Returns\n    -------\n    Tuple[ndarray, int]\n        ndarray with shape (len(teval), len(y0)) containing solution\n        and number of successful time steps taken.\n    Tuple[ndarray, int, Dict[str, Any]]\n        If full_output == True, also return dictionary with integtation stats.\n");
 
 
 static PyMethodDef moduleMethods[] = {
