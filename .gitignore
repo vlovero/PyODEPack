@@ -1,0 +1,5 @@
+build
+dist
+pyodepack.egg-info
+tests
+.vscode
