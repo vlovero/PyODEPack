@@ -246,7 +246,7 @@ namespace verner65e
 
 
     template <typename T, typename funcT, const bool scalar = false>
-    inline ODEResult integrate(funcT fn, const RP(T) y0, const RP(T) teval, RP(T) Y,
+    inline ODEResult<T> integrate(funcT fn, const RP(T) y0, const RP(T) teval, RP(T) Y,
         const T min_step, const T max_step, const T h0, const T rtol, const T atol,
         const size_t n, const size_t m, const RP(T) max_norm, const RP(void) fargs)
     {

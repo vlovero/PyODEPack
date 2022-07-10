@@ -95,9 +95,9 @@ bool importLapackRoutines()
 }
 
 template <typename funcT>
-inline ODEResult callMethod(int method, funcT f, double *y0, double *t, double *y, double min_step, double max_step, double h0, double rtol, double atol, size_t m, double *sphere, PyObject *pyargs, size_t n)
+inline ODEResult<double> callMethod(int method, funcT f, double *y0, double *t, double *y, double min_step, double max_step, double h0, double rtol, double atol, size_t m, double *sphere, PyObject *pyargs, size_t n)
 {
-    ODEResult result;
+    ODEResult<double> result;
 
     switch (method) {
         case 0:
@@ -153,7 +153,7 @@ PyObject *PySolveIVP(PyObject *self, PyObject *args, PyObject *kwargs)
     double atol = 1.49012e-8, rtol = 1.49012e-8, min_step = 1e-6, h0 = 0.0, max_step = std::numeric_limits<double>::infinity();
     int isvoid = 0;
     size_t n, m;
-    ODEResult result;
+    ODEResult<double> result;
     int method = 0, full_output = 0;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOO|OOpddddOipd", const_cast<char **>(kwlist), &pyf, &pyY0, &pyT, &pyargs, &pyY, &isvoid, &atol, &rtol, &min_step, &max_step, &pyW, &method, &full_output, &h0)) {
@@ -307,11 +307,30 @@ error:
         return Py_BuildValue("Ol", npyY, (long)result.k);
     }
     else {
-        return Py_BuildValue("Ol{s:l,s:l,s:l,s:l}", npyY, (long)result.k,
+        std::string message;
+        switch (result.status) {
+            case ODEExitCodes::success:
+                message = "success";
+                break;
+            case ODEExitCodes::outOfBounds:
+                message = "solution left computation window during between intervals";
+                break;
+            case ODEExitCodes::failedInterpolation:
+                message = "interpolant left computation window";
+                break;
+            default:
+                PyErr_Format(PyExc_ValueError, "Unknown exit code %lu", (unsigned long)(result.status));
+                Py_XDECREF(npyY);
+                return NULL;
+        }
+        return Py_BuildValue("Ol{s:l,s:l,s:l,s:l,s:l,s:s,s:d}", npyY, (long)result.k,
             "feval", (long)result.feval,
             "jeval", (long)result.jeval,
             "fails", (long)result.fails,
-            "steps", (long)result.steps);
+            "steps", (long)result.steps,
+            "numlu", (long)result.numLU,
+            "message", message.c_str(),
+            "hout", result.stepOnExit);
     }
 }
 

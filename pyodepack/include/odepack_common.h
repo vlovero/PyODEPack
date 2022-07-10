@@ -31,7 +31,7 @@ enum ODEExitCodes
 {
     success = 0,
     outOfBounds,
-
+    failedInterpolation
 };
 
 namespace std
@@ -43,6 +43,7 @@ namespace std
     }
 }
 
+template <typename T>
 struct ODEResult
 {
     size_t k;
@@ -50,8 +51,9 @@ struct ODEResult
     size_t jeval;
     size_t fails;
     size_t steps;
-    // size_t numLU;
+    size_t numLU;
     size_t status;
+    T stepOnExit;
 };
 
 

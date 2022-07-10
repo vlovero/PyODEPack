@@ -3,3 +3,7 @@ dist
 pyodepack.egg-info
 tests
 .vscode
+__pycache__
+pytest
+.benchmarks
+.pytest_cache

@@ -83,7 +83,7 @@ namespace erk
         const std::array<T, s> &B,
         const std::array<T, s> &D,
         bool scalar = false>
-    ODEResult integrate(funcT fn, const RP(T) y0, const RP(T) teval, RP(T) Y,
+    ODEResult<T> integrate(funcT fn, const RP(T) y0, const RP(T) teval, RP(T) Y,
         const T min_step, const T max_step, const T h0, const T rtol, const T atol,
         const size_t n, const size_t m, const RP(T) max_norm, const RP(void) fargs)
     {
@@ -92,7 +92,7 @@ namespace erk
 
         auto f = [=](const T t, const T *input, T *out) { fn(t, input, out, fargs); };
 
-        T work[(4 + s_star + p) * n];
+        T *work = (T *)std::malloc((4 + s_star + p) * n * sizeof(T));
         T *yn = &work[0];
         T *yn1 = yn + n;
         T *dy = yn1 + n;
@@ -217,7 +217,8 @@ namespace erk
                     need2break = interpolate<T, s_star, p, P>(&Y[n * index_t0], &teval[index_t0], yn, K, t0, dt, Dxy, n, index_t1 - index_t0, Q);
                     if (need2break) {
                         PRINT_ERROR_MESSAGE("interpolant not in computation window or not finite");
-                        return { index_t0, feval, jeval, fails, steps };
+                        std::free(work);
+                        return { index_t0, feval, jeval, fails, steps, 0, ODEExitCodes::failedInterpolation, dt };
                     }
                     index_t0 = index_t1;
                     t1 = teval[index_t1];
@@ -232,7 +233,8 @@ namespace erk
                     }
                     if ((dst > Dxy) || !std::isfinite(dst)) {
                         PRINT_ERROR_MESSAGE("solution not in computation window or not finite");
-                        return { index_t0, feval, jeval, fails, steps };
+                        std::free(work);
+                        return { index_t0, feval, jeval, fails, steps, 0, ODEExitCodes::outOfBounds, dt };
                     }
                 }
 
@@ -245,7 +247,8 @@ namespace erk
                 dt = backwards * dtabs;
             }
         }
-        return { m, feval, jeval, fails, steps };
+        std::free(work);
+        return { m, feval, jeval, fails, steps, 0, ODEExitCodes::success, dt };
     }
 }
 

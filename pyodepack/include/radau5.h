@@ -327,7 +327,7 @@ namespace radau5iia
     }
 
     template <typename T, typename funcT, const auto &factorLUR, const auto &factorLUC, const auto &solveLUR, const auto &solveLUC>
-    ODEResult integrate(funcT fun, const RP(T) y0, const RP(T) teval, RP(T) Y,
+    ODEResult<T> integrate(funcT fun, const RP(T) y0, const RP(T) teval, RP(T) Y,
         const T min_step, const T max_step, const T h0, const T rtol, const T atol,
         const size_t n, const size_t m, const RP(T) max_norm, const RP(void) fargs)
     {
@@ -539,7 +539,7 @@ namespace radau5iia
                     if (need2break) {
                         PRINT_ERROR_MESSAGE("interpolant not in computation window or not finite");
                         std::free(allwork);
-                        return { index_t0, feval, jeval, fails, steps };
+                        return { index_t0, feval, jeval, fails, steps, nlu, ODEExitCodes::failedInterpolation, dt };
                     }
                     index_t0 = index_t1;
                     t1 = teval[index_t1];
@@ -555,7 +555,7 @@ namespace radau5iia
                     if ((dst > Dxy) || !std::isfinite(dst)) {
                         PRINT_ERROR_MESSAGE("solution not in computation window or not finite");
                         std::free(allwork);
-                        return { index_t0, feval, jeval, fails, steps };
+                        return { index_t0, feval, jeval, fails, steps, nlu, ODEExitCodes::outOfBounds, dt };
                     }
                 }
 
@@ -609,7 +609,7 @@ namespace radau5iia
             }
         }
         std::free(allwork);
-        return { m, feval, jeval, fails, steps };
+        return { m, feval, jeval, fails, steps, nlu, ODEExitCodes::success, dt };
     }
 }
 

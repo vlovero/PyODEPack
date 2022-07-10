@@ -2370,11 +2370,16 @@ namespace lsoda
         {
             return nst;
         }
+
+        T gethu() const
+        {
+            return hu;
+        }
     };
 
 
     template <typename T, typename funcT>
-    ODEResult integrate(funcT fn, const RP(T) y0, const RP(T) teval, RP(T) Y,
+    ODEResult<T> integrate(funcT fn, const RP(T) y0, const RP(T) teval, RP(T) Y,
         const T min_step, const T max_step, const T h0, T _rtol, T _atol,
         const size_t n, const size_t m, const RP(T) max_norm, const RP(void) fargs)
     {
@@ -2436,7 +2441,7 @@ namespace lsoda
 
         y++;
         delete[] y;
-        return { (size_t)i, (size_t)lsoda_integrator.getnfe(), (size_t)lsoda_integrator.getjfe(), 0, (size_t)lsoda_integrator.getnst(), 0 };
+        return { (size_t)i, (size_t)lsoda_integrator.getnfe(), (size_t)lsoda_integrator.getjfe(), 0, (size_t)lsoda_integrator.getnst(), 0, 0, lsoda_integrator.gethu() };
     }
 }
 
