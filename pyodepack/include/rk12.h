@@ -1,71 +1,62 @@
-/*
- * Modified butcher table and interpolant coefficients for the RK23
- * method described in [1].
- *
- * Vincent Lovero
- *
- * [1] P. Bogacki, L.F. Shampine, “A 3(2) Pair of Runge-Kutta Formulas”, Appl. Math. Lett. Vol. 2, No. 4. pp. 321-325, 1989.
- */
-
-#ifndef ODEPACK_RK23_H
-#define ODEPACK_RK23_H
+#ifndef ODEPACK_RK12_H
+#define ODEPACK_RK12_H
 
 #include "odepack_common.h"
 #include "rk.h"
 
-
-namespace bogackiShampine
+namespace Fehlberg12
 {
     template <typename T>
-    constexpr std::array<T, 12> _getInterpolant()
+    constexpr std::array<T, 9> _getInterpolant()
     {
-        return { 1.0, -4.0 / 3.0, 5.0 / 9.0,
-                 0.0, 1.0, -2.0 / 3.0,
-                 0.0, 4.0 / 3.0, -8.0 / 9.0,
-                 0.0, -1.0, 1.0 };
+        return { 1.0, -1.0, 1.0 / 512,
+                 0.0, 1.0, -1.0 / 256,
+                 0.0, 0.0, 1.0 / 512 };
+        // return { 5.0 / 6.0, -1.0 / 2.0,
+        //          1.0 / 3.0, 0.0,
+        //          -1.0 / 6.0, 1.0 / 2.0 };
     }
 
     template <typename T>
-    constexpr std::array<T, 4> _getNodes()
+    constexpr std::array<T, 3> _getNodes()
     {
-        return { 0.0, 0.5, 0.75, 1.0 };
+        return { 0.0, 0.5, 1.0 };
     }
 
     template <typename T>
-    constexpr std::array<T, 16> _getCoeffs()
+    constexpr std::array<T, 9> _getCoeffs()
     {
-        return { 0.0, 0.0, 0.0, 0.0,
-                 0.5, 0.0, 0.0, 0.0,
-                 0.0, 0.75, 0.0, 0.0,
-                 2.0 / 9.0, 1.0 / 3.0, 4.0 / 9.0, 0.0 };
+        return { 0.0, 0.0, 0.0,
+                 0.5, 0.0, 0.0,
+                 1.0 / 256, 255.0 / 256, 0.0 };
     }
 
     template <typename T>
-    constexpr std::array<T, 4> _getWeights()
+    constexpr std::array<T, 3> _getWeights()
     {
-        return { 2.0 / 9.0, 1.0 / 3.0, 4.0 / 9.0, 0.0 };
+        return { 1.0 / 512, 255.0 / 256, 1.0 / 512 };
     }
 
     template <typename T>
-    constexpr std::array<T, 4> _getDeltas()
+    constexpr std::array<T, 3> _getDeltas()
     {
-        return { 5.0 / 72.0, -1.0 / 12.0, -1.0 / 9.0, 1.0 / 8.0 };
+        return { 1.0 / 512, 0.0, -1.0 / 512 };
     }
 
-    constexpr std::array<double, 12> interpolant_f64 = _getInterpolant<double>();
-    constexpr std::array<float, 12> interpolant_f32 = _getInterpolant<float>();
+    constexpr std::array<double, 9> interpolant_f64 = _getInterpolant<double>();
+    constexpr std::array<float, 9> interpolant_f32 = _getInterpolant<float>();
 
-    constexpr std::array<double, 16> coefficients_f64 = _getCoeffs<double>();
-    constexpr std::array<float, 16> coefficients_f32 = _getCoeffs<float>();
+    constexpr std::array<double, 9> coefficients_f64 = _getCoeffs<double>();
+    constexpr std::array<float, 9> coefficients_f32 = _getCoeffs<float>();
 
-    constexpr std::array<double, 4> weights_f64 = _getWeights<double>();
-    constexpr std::array<float, 4> weights_f32 = _getWeights<float>();
+    constexpr std::array<double, 3> weights_f64 = _getWeights<double>();
+    constexpr std::array<float, 3> weights_f32 = _getWeights<float>();
 
-    constexpr std::array<double, 4> deltas_f64 = _getDeltas<double>();
-    constexpr std::array<float, 4> deltas_f32 = _getDeltas<float>();
+    constexpr std::array<double, 3> deltas_f64 = _getDeltas<double>();
+    constexpr std::array<float, 3> deltas_f32 = _getDeltas<float>();
 
-    constexpr std::array<double, 4> nodes_f64 = _getNodes<double>();
-    constexpr std::array<float, 4> nodes_f32 = _getNodes<float>();
+    constexpr std::array<double, 3> nodes_f64 = _getNodes<double>();
+    constexpr std::array<float, 3> nodes_f32 = _getNodes<float>();
 
     template <typename T, typename funcT, const bool scalar = false>
     inline ODEResult<T> integrate(funcT fn, const RP(T) y0, const RP(T) teval, RP(T) Y,
@@ -75,17 +66,17 @@ namespace bogackiShampine
         static_assert(std::is_same<T, double>::value || std::is_same<T, float>::value, "Only types float and double are currently supported");
 
         if constexpr (std::is_same<T, double>::value) {
-            return erk::integrate<T, funcT, 4, 4, 3,
+            return erk::integrate<T, funcT, 3, 3, 3,
                 nodes_f64,
-                4, coefficients_f64,
+                3, coefficients_f64,
                 interpolant_f64,
                 weights_f64,
                 deltas_f64, scalar>(fn, y0, teval, Y, min_step, max_step, h0, rtol, atol, n, m, max_norm, fargs);
         }
         else if constexpr (std::is_same<T, float>::value) {
-            return erk::integrate<T, funcT, 4, 4, 3,
+            return erk::integrate<T, funcT, 3, 3, 3,
                 nodes_f32,
-                4, coefficients_f32,
+                3, coefficients_f32,
                 interpolant_f32,
                 weights_f32,
                 deltas_f32, scalar>(fn, y0, teval, Y, min_step, max_step, h0, rtol, atol, n, m, max_norm, fargs);
@@ -94,19 +85,19 @@ namespace bogackiShampine
 
     size_t getWorkArraySize(size_t node)
     {
-        return (4 + 4 + 3) * node;
+        return (3 + 3 + 3) * node;
     }
 
     template <typename funcT, bool scalar = false>
-    using stepper64_t = erk::RKStepper<double, funcT, 4, 4, 3,
-        nodes_f64, 4, coefficients_f64,
+    using stepper64_t = erk::RKStepper<double, funcT, 3, 3, 3,
+        nodes_f64, 3, coefficients_f64,
         interpolant_f64,
         weights_f64,
         deltas_f64, scalar>;
 
     template <typename funcT, bool scalar = false>
-    using stepper32_t = erk::RKStepper<float, funcT, 4, 4, 3,
-        nodes_f32, 4, coefficients_f32,
+    using stepper32_t = erk::RKStepper<float, funcT, 3, 3, 3,
+        nodes_f32, 3, coefficients_f32,
         interpolant_f32,
         weights_f32,
         deltas_f32, scalar>;
@@ -119,8 +110,8 @@ namespace bogackiShampine
         static_assert(std::is_same<T, double>::value || std::is_same<T, float>::value, "Only types float and double are currently supported");
 
         if constexpr (std::is_same<T, double>::value) {
-            using stepper_t = erk::RKStepper<T, funcT, 4, 4, 3,
-                nodes_f64, 4, coefficients_f64,
+            using stepper_t = erk::RKStepper<T, funcT, 3, 3, 3,
+                nodes_f64, 3, coefficients_f64,
                 interpolant_f64,
                 weights_f64,
                 deltas_f64, scalar>;
@@ -130,8 +121,8 @@ namespace bogackiShampine
             return stepper;
         }
         else if constexpr (std::is_same<T, float>::value) {
-            using stepper_t = erk::RKStepper<T, funcT, 4, 4, 3,
-                nodes_f32, 4, coefficients_f32,
+            using stepper_t = erk::RKStepper<T, funcT, 3, 3, 3,
+                nodes_f32, 3, coefficients_f32,
                 interpolant_f32,
                 weights_f32,
                 deltas_f32, scalar>;
@@ -143,4 +134,4 @@ namespace bogackiShampine
     }
 }
 
-#endif  // ODEPACK_RK23_H
+#endif // ODEPACK_RK12_H

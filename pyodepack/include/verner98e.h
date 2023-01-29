@@ -686,6 +686,56 @@ namespace verner98e
                 deltas_f32, scalar>(fn, y0, teval, Y, min_step, max_step, h0, rtol, atol, n, m, max_norm, fargs);
         }
     }
+
+    size_t getWorkArraySize(size_t node)
+    {
+        return (4 + 21 + 8) * node;
+    }
+
+    template <typename funcT, bool scalar = false>
+    using stepper64_t = erk::RKStepper<double, funcT, 16, 21, 8,
+        nodes_f64, 20, coefficients_f64,
+        interpolant_f64,
+        weights_f64,
+        deltas_f64, scalar>;
+
+    template <typename funcT, bool scalar = false>
+    using stepper32_t = erk::RKStepper<float, funcT, 16, 21, 8,
+        nodes_f32, 20, coefficients_f32,
+        interpolant_f32,
+        weights_f32,
+        deltas_f32, scalar>;
+
+    template <typename T, typename funcT, const bool scalar = false>
+    inline auto step(funcT f, T tn, const T tf, const RP(T) y0, RP(T) y, const T atol, const T rtol,
+        const T minStep, const T maxStep, const T initStep, const size_t node, const bool firstStep, const RP(T) window,
+        RP(T) work, const RP(void) args)
+    {
+        static_assert(std::is_same<T, double>::value || std::is_same<T, float>::value, "Only types float and double are currently supported");
+
+        if constexpr (std::is_same<T, double>::value) {
+            using stepper_t = erk::RKStepper<T, funcT, 16, 21, 8,
+                nodes_f64, 20, coefficients_f64,
+                interpolant_f64,
+                weights_f64,
+                deltas_f64, scalar>;
+
+            stepper_t stepper;
+            stepper.step(f, tn, tf, y0, y, atol, rtol, minStep, maxStep, initStep, node, firstStep, window, work, args);
+            return stepper;
+        }
+        else if constexpr (std::is_same<T, float>::value) {
+            using stepper_t = erk::RKStepper<T, funcT, 16, 21, 8,
+                nodes_f32, 20, coefficients_f32,
+                interpolant_f32,
+                weights_f32,
+                deltas_f32, scalar>;
+
+            stepper_t stepper;
+            stepper.step(f, tn, tf, y0, y, atol, rtol, minStep, maxStep, initStep, node, firstStep, window, work, args);
+            return stepper;
+        }
+    }
 }
 
 #endif // ODEPACK_VERNER98E_H

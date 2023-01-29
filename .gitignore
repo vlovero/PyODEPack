@@ -2,6 +2,7 @@ build
 dist
 pyodepack.egg-info
 tests
+dev
 .vscode
 __pycache__
 pytest
