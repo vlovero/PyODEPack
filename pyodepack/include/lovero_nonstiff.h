@@ -15,6 +15,9 @@
 #define QUAD_INLINE [[gnu::always_inline]]
 #endif
 
+#define TEST_FASTER_QUAD 1
+#define TEST_SWITCHES_AT_TOP 1
+
 namespace loveroNS
 {
     // number of points is 13 -> only need up to 7 point gauss
@@ -39,6 +42,10 @@ namespace loveroNS
     constexpr std::array<double, 3> gaussXK7 = { 0.405845151377397184155881859624, 0.741531185599394460083999547351, 0.949107912342758486268223805382 };
     constexpr std::array<double, 4> gaussWK7 = { 0.417959183673468959163699310011, 0.381830050505118312464958307828, 0.279705391489276589123136318449, 0.129484966168870646585631334347 };
 
+    /*
+        Gaussian Quadrature for vector functions
+        signature (scalar, pointer) -> void
+    */
     template <const auto &nodes, const auto &weights, typename funcT, typename T>
     QUAD_INLINE void quadG(funcT &f, const T a, const T b, RP(T) result, const size_t n)
     {
@@ -84,6 +91,10 @@ namespace loveroNS
         }
     }
 
+    /*
+        Gaussian Quadrature for scalar functions
+        signature (scalar) -> scalar
+    */
     template <const auto &nodes, const auto &weights, typename funcT, typename T>
     QUAD_INLINE T quadG(funcT &f, const T a, const T b)
     {
@@ -96,7 +107,7 @@ namespace loveroNS
 
         const T center = (a + b) * 0.5;
         const T h2 = (b - a) * 0.5;
-        size_t i, k;
+        size_t i;
         T fv1;
         T fv2;
         T fsum;
@@ -121,31 +132,87 @@ namespace loveroNS
         return result;
     }
 
+    /*
+        Linearly weighted gaussian quadrature for scalar functions
+        returns \int_a^b f(t)dt and wres will contain \int_a^b f(t) (t - x)dt
+        This is used to make prediction step go from O(s^2 n) work to
+        O(sn + s^2) work. So for larger systems, it will be much more efficient.
+    */
+    template <const auto &nodes, const auto &weights, typename funcT, typename T>
+    QUAD_INLINE T quadGLW(funcT &f, const T a, const T b, T &wres, const T x)
+    {
+        constexpr size_t nnodes = nodes.size();
+        constexpr size_t nweights = weights.size();
 
+        static_assert((1 <= nweights) && (nweights <= 4));
+        constexpr bool even = nnodes == nweights;
+        constexpr size_t shift = !even;
+
+        const T center = (a + b) * 0.5;
+        const T h2 = (b - a) * 0.5;
+        size_t i;
+        T fv1;
+        T fv2;
+        T fsum;
+        T val;
+        T result;
+        T weightedResult;
+
+        if constexpr (even) {
+            result = 0;
+            weightedResult = 0;
+        }
+        else {
+            result = weights[0] * f(center);
+            weightedResult = result * (center - x);
+        }
+        for (i = 0; i < nnodes; i++) {
+            val = h2 * nodes[i];
+            fv1 = f(center - val);
+            fv2 = f(center + val);
+            fsum = fv1 + fv2;
+            result += weights[i + shift] * fsum;
+            // compute linearly weighted values
+            fv1 *= (center - val - x);
+            fv2 *= (center + val - x);
+            fsum = fv1 + fv2;
+            weightedResult += weights[i + shift] * fsum;
+        }
+
+        result *= h2;
+        weightedResult *= h2;
+        wres = weightedResult;
+        return result;
+    }
+
+
+    template <typename T, typename funcT>
     struct LoveroNS
     {
-        typedef double T;
-        typedef void(*funcT)(double, double *, double *);
+        // typedef double T;
+        // typedef void(*funcT)(double, double *, double *, void *);
 
         funcT f;
         size_t node;
         T *work, *yn, *dy, *yn1, *yn1_c, *ftmp, px[13], *A[13];
         T hn, tn, atol, rtol;
         int feval, fails, totalSteps, steps;
-        T xhistory[13], *yhistory;
+        T xhistory[13], *yhistory;  // might change to double*[13]
         size_t nhistory;
         size_t pnx, qnx;
+        void *args;
 
     private:
-        /** newer version of NewtonPolynomialNew
-        no "solving" for coefficients
-        only appending nodes and removing first node will be available
-        adding Nodes will take O(ns) flops n is number of dimensions, s number of points
-        removing first node will be O(1) time (just a few move instructions)
-        same operator()
-        new correction method
-        no need for y vals since they will be in A
-    **/
+        /*
+            Newton divided difference polynomial
+            no "solving" for coefficients
+            only appending nodes and removing first node will be available
+            adding Nodes will take O(ns) flops n is number of dimensions, s number of points
+            removing first node will be O(1) time (just a few move instructions)
+            same operator()
+            new correction method
+            no need for y vals since they will be in A
+        */
         struct NewtonPolynomial
         {
             T *x, **A;
@@ -157,6 +224,7 @@ namespace loveroNS
             {
             }
 
+            // quickly make a "copy" polynomial of degree n - k
             LOVERO_INLINE void referenceWithoutFirst(NewtonPolynomial &other, size_t k) const
             {
                 other.x = x + k;
@@ -173,7 +241,7 @@ namespace loveroNS
 
                 j = 0;
                 for (i = nx - 1; i > -1; i--) {
-                    for (k = 0; k < ny; k++) {
+                    for (k = 0; k < (ptrdiff_t)ny; k++) {
                         A[i][(j + 1) * ny + k] = (A[i + 1][j * ny + k] - A[i][j * ny + k]) / (xn - x[i]);
                     }
                     j++;
@@ -185,11 +253,12 @@ namespace loveroNS
             {
                 nx--;
             }
+
             // only to be used at end of step (not for lower order polys)
             LOVERO_INLINE void removeFirstNode()
             {
                 // since this class is only to be used in context
-                // of LODE, assume 13 points are always allocated
+                // of solver, assume 13 points are always allocated
                 size_t i;
                 T *first = *A;
                 nx--;
@@ -219,32 +288,97 @@ namespace loveroNS
 
             LOVERO_INLINE void integrate(T a, T b, RP(T) res) const
             {
-                const size_t m = (nx >> 1) + (nx & 1);
-                switch (m) {
-                    case 1:
-                        quadG<gaussXK1, gaussWK1>(*this, a, b, res, ny);
-                        break;
-                    case 2:
-                        quadG<gaussXK2, gaussWK2>(*this, a, b, res, ny);
-                        break;
-                    case 3:
-                        quadG<gaussXK3, gaussWK3>(*this, a, b, res, ny);
-                        break;
-                    case 4:
-                        quadG<gaussXK4, gaussWK4>(*this, a, b, res, ny);
-                        break;
-                    case 5:
-                        quadG<gaussXK5, gaussWK5>(*this, a, b, res, ny);
-                        break;
-                    case 6:
-                        quadG<gaussXK6, gaussWK6>(*this, a, b, res, ny);
-                        break;
-                    case 7:
-                        quadG<gaussXK7, gaussWK7>(*this, a, b, res, ny);
-                        break;
+                ptrdiff_t i, s = 0, m, n;
+                bool r;
+                T Q1, Q2;
+                const T *c = *A;
+
+                n = nx & (-2);
+                r = (ptrdiff_t)nx != n;
+                memset(res, 0, ny * sizeof(T));
+
+                auto p = [&](T t) __attribute__((always_inline))
+                {
+                    ptrdiff_t j;
+                    T tmp = 1;
+                    for (j = 0; j < (s - 1); j++) {
+                        tmp *= (t - x[j]);
+                    }
+                    return tmp;
+                };
+
+                for (s = 0; s < n; s += 2) {
+                    // integrate in pairs since they require same number of nodes
+                    s++;
+                    m = (s >> 1) + (s & 1);
+                    switch (m) {
+                        case 1:
+                            Q1 = quadGLW<gaussXK1, gaussWK1>(p, a, b, Q2, x[s - 1]);
+                            break;
+                        case 2:
+                            Q1 = quadGLW<gaussXK2, gaussWK2>(p, a, b, Q2, x[s - 1]);
+                            break;
+                        case 3:
+                            Q1 = quadGLW<gaussXK3, gaussWK3>(p, a, b, Q2, x[s - 1]);
+                            break;
+                        case 4:
+                            Q1 = quadGLW<gaussXK4, gaussWK4>(p, a, b, Q2, x[s - 1]);
+                            break;
+                        case 5:
+                            Q1 = quadGLW<gaussXK5, gaussWK5>(p, a, b, Q2, x[s - 1]);
+                            break;
+                        case 6:
+                            Q1 = quadGLW<gaussXK6, gaussWK6>(p, a, b, Q2, x[s - 1]);
+                            break;
+                        case 7:
+                            Q1 = quadGLW<gaussXK7, gaussWK7>(p, a, b, Q2, x[s - 1]);
+                            break;
+                    }
+                    s--;
+                    for (i = 0; i < (ptrdiff_t)ny; i++) {
+                        res[i] += (c[s * ny + i] * Q1) + (c[(s + 1) * ny + i] * Q2);
+                    }
+                }
+                if (r) {
+                    // if there was an odd number, integrate and add to result
+                    s = nx;
+                    m = (s >> 1) + (s & 1);
+                    switch (m) {
+                        case 1:
+                            Q1 = quadG<gaussXK1, gaussWK1>(p, a, b);
+                            break;
+                        case 2:
+                            Q1 = quadG<gaussXK2, gaussWK2>(p, a, b);
+                            break;
+                        case 3:
+                            Q1 = quadG<gaussXK3, gaussWK3>(p, a, b);
+                            break;
+                        case 4:
+                            Q1 = quadG<gaussXK4, gaussWK4>(p, a, b);
+                            break;
+                        case 5:
+                            Q1 = quadG<gaussXK5, gaussWK5>(p, a, b);
+                            break;
+                        case 6:
+                            Q1 = quadG<gaussXK6, gaussWK6>(p, a, b);
+                            break;
+                        case 7:
+                            Q1 = quadG<gaussXK7, gaussWK7>(p, a, b);
+                            break;
+                    }
+                    s--;
+                    for (i = 0; i < (ptrdiff_t)ny; i++) {
+                        res[i] += c[s * ny + i] * Q1;
+                    }
                 }
             }
 
+            /*
+                Corrector is of form p_{n+1} = p_{n} + a_{n+1}prod(x - x_k) = p_{n} + a_{n+1} q
+                only need to integrate q to get Q = int q(t)
+                instead of O(s^2 n) work, this will be O(s^2 + n) work, a HUGE savings for large
+                systems.
+            */
             LOVERO_INLINE T integrateCorrector(T a, T b, RP(T) dy, const RP(T) yn1, RP(T) yn1_c) const
             {
                 const T *c = *A;
@@ -294,10 +428,11 @@ namespace loveroNS
         };
 
     public:
-        LoveroNS(funcT f, size_t node, RP(T) y0, T t0, T h0 = 1e-4, T atol = 1.49011612e-08, T rtol = 1.49011612e-08)
+        LoveroNS(funcT f, size_t node, const RP(T) y0, T t0, T h0 = 0e-4, T atol = 1.49011612e-08, T rtol = 1.49011612e-08, void *args = nullptr)
             : f(f), node(node), hn(h0), tn(t0), atol(atol), rtol(rtol), feval(1), fails(0),
-            totalSteps(0), steps(0), pnx(0), qnx(0)
+            totalSteps(0), steps(0), pnx(0), qnx(0), args(args)
         {
+            // std::cout << __PRETTY_FUNCTION__ << '\n';
             size_t nwork = sizeof(T) * (node * (0
                 + 1 // yn
                 + 1 // dy
@@ -317,7 +452,7 @@ namespace loveroNS
             yhistory = yn1_c + node;
             ftmp = yhistory + 13 * node;
 
-            // this is overallocated but drastially simplifies the code
+            // this is overallocated but drastically simplifies the code
             T *head = ftmp + node;
             for (size_t i = 0; i < 13; i++) {
                 A[i] = head;
@@ -329,9 +464,13 @@ namespace loveroNS
             nhistory = 1;
 
             memcpy(yn, y0, node * sizeof(T));
-            f(tn, yn, ftmp);
+            f(tn, yn, ftmp, args);
             NewtonPolynomial p(pnx, node, px, A);
             p.addNode(tn, ftmp);
+
+            if (hn == 0) {
+                hn = ::initStepSize(f, tn, yn, ftmp, yn1, yn1_c, rtol, atol, 1.0, 1.0, node, args);
+            }
         }
 
         ~LoveroNS()
@@ -381,11 +520,11 @@ namespace loveroNS
 
             while (1) {
                 tn1 = tn + hn;
-                // O(s^2 n) work :(
+                // O(sn + s^2) work
                 p.integrate(tn, tn1, yn1);
                 addYnTo(yn1);
 
-                f(tn1, yn1, ftmp);
+                f(tn1, yn1, ftmp, args);
                 feval++;
                 // O(sn) work
                 p.addNode(tn1, ftmp);
@@ -400,7 +539,7 @@ namespace loveroNS
 
                 if (norm0 < 1) {
                     p.removeLastNode();
-                    f(tn1, yn1_c, ftmp);
+                    f(tn1, yn1_c, ftmp, args);
                     feval++;
                     p.addNode(tn1, ftmp);
                     break;
@@ -415,7 +554,7 @@ namespace loveroNS
                         }
 
                         p.removeLastNode();
-                        f(tn1, yn1, ftmp);
+                        f(tn1, yn1, ftmp, args);
                         feval++;
                         p.addNode(tn1, ftmp);
 
@@ -574,7 +713,142 @@ namespace loveroNS
             std::swap(yn, yn1_c); // no memcpy
             return failed;
         }
+
+        ODEFailCodes preStepChecks() const
+        {
+            size_t i;
+
+            if (hn < (std::nextafter(tn, std::numeric_limits<T>::infinity()) - tn)) {
+                return ODEFailCodes::stepTooSmall;
+            }
+
+            for (i = 0; i < node; i++) {
+                if (!std::isfinite(yn[i]) || !std::isfinite(ftmp[i])) {
+                    return ODEFailCodes::nonFiniteState;
+                }
+            }
+
+            return ODEFailCodes::noFailures;
+        }
+
+        ptrdiff_t stepWithCheckpoints(const RP(T) teval, RP(T) yeval, const ptrdiff_t neval)
+        {
+            T norm0, ratio, tn1, ttarget;
+            ptrdiff_t k;
+            bool failed;
+
+            if (neval == 0) {
+                return 0;
+            }
+            if (ODEFailCodes code = preStepChecks()) {
+                return -code;
+            }
+
+            ttarget = *teval;
+            k = 0;
+
+            steps++;
+            totalSteps++;
+
+            constexpr bool stiff = false;
+
+            if (stiff) {
+                // stiff step
+            }
+            else {
+                tn1 = nonstiffStep(norm0, ratio, failed);
+            }
+
+            // evaluate at checkpoints
+            while ((k < neval) && (ttarget <= tn1)) {
+                NewtonPolynomial(pnx, node, px, A).integrate(tn, ttarget, &yeval[node * k]);
+                addYnTo(&yeval[node * k]);
+                k++;
+                if (k < neval) {
+                    ttarget = teval[k];
+                }
+            }
+
+            // method switch
+
+            if (stiff) {
+                // order switch stiff
+            }
+            else {
+                orderSwitchNonstiff(tn1, norm0, ratio);
+            }
+
+            if (nhistory == 13) {
+                memcpy(xhistory, xhistory + 1, (nhistory - 1) * sizeof(T));
+                memcpy(yhistory, yhistory + node, node * (nhistory - 1) * sizeof(T));
+                xhistory[nhistory - 1] = tn1;
+                memcpy(yhistory + (nhistory - 1) * node, yn1_c, node * sizeof(T));
+            }
+            else {
+                xhistory[nhistory] = tn1;
+                memcpy(yhistory + nhistory * node, yn1_c, node * sizeof(T));
+                nhistory++;
+            }
+
+            tn = tn1;
+            std::swap(yn, yn1_c); // no memcpy
+            return k;
+        }
     };
+
+    template <typename T, typename funcT>
+    ODEResult<T> integrate(funcT fn, const RP(T) y0, const RP(T) teval, RP(T) Y,
+        const T min_step, const T max_step, const T h0, const T rtol, const T atol,
+        const size_t n, const size_t m, const RP(T) max_norm, RP(void) fargs)
+    {
+        const T Dxy = max_norm[0];
+        const T *centers = &max_norm[1];
+
+        ptrdiff_t diff, k, i, j;
+        ptrdiff_t neval = m, offset = 1;
+        T val, dst, tf;
+        T *yj;
+
+        memcpy(Y, y0, n * sizeof(T));
+        diff = neval - offset;
+        tf = teval[m - 1];
+
+        LoveroNS<T, funcT> stepper(fn, n, y0, *teval, h0, atol, rtol, fargs);
+
+        while (stepper.tn < tf) {
+            k = stepper.stepWithCheckpoints(&teval[offset], &Y[offset * n], diff);
+            if (k < 0) {
+                // pre step checks failed
+                k = -k;
+                switch (k) {
+                    case ODEFailCodes::stepTooSmall:
+                        return { (size_t)(offset), (size_t)stepper.feval, 0, (size_t)stepper.fails, (size_t)stepper.totalSteps, 0, ODEExitCodes::stepSizeTooSmall, stepper.hn, stepper.tn };
+                    case ODEFailCodes::nonFiniteState:
+                        return { (size_t)(offset), (size_t)stepper.feval, 0, (size_t)stepper.fails, (size_t)stepper.totalSteps, 0, ODEExitCodes::outOfBounds, stepper.hn, stepper.tn };
+                    default:
+                        assert((0 < k) && (k < 3));
+                }
+            }
+
+            if (std::isfinite(Dxy)) {
+                // do bounds check if Dxy is bounded
+                for (j = 0; j < k; j++) {
+                    yj = &Y[(offset + j)];
+                    dst = 0;
+                    for (i = 0; i < (ptrdiff_t)n; i++) {
+                        val = yj[i] - centers[i];
+                        dst += val * val;
+                    }
+                    if ((Dxy < dst) || !std::isfinite(dst)) {
+                        return { (size_t)(offset + j), (size_t)stepper.feval, 0, (size_t)stepper.fails, (size_t)stepper.totalSteps, 0, ODEExitCodes::outOfBounds, stepper.hn, stepper.tn };
+                    }
+                }
+            }
+            offset += k;
+            diff -= k;
+        }
+        return { m, (size_t)stepper.feval, 0, (size_t)stepper.fails, (size_t)stepper.totalSteps, 0, ODEExitCodes::success, stepper.hn, stepper.tn };
+    }
 
 }
 

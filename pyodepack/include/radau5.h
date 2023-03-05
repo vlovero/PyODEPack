@@ -296,7 +296,8 @@ namespace radau5iia
             if (m != 0) {
                 rate = normdW / prevNormdW;
                 val = std::pow(rate, (NEWTON_MAXITER - m)) / (1.0 - rate) * normdW;
-                if ((1 <= rate) || (tol < val)) {
+                s = (rate / (1.0 - rate) * normdW);
+                if ((1 <= rate) || ((tol < val) && (tol <= s))) {
                     converged = false;
                     niter = m + 1;
                     return rate;
@@ -312,7 +313,7 @@ namespace radau5iia
             naiveDot(Z, T_.data(), W, 3, 3, 3, n);
 
             // if converged break
-            if ((normdW == 0.0) || ((m != 0) && ((rate / (1.0 - rate) * normdW) < tol))) {
+            if ((normdW == 0.0) || ((m != 0) && (s < tol))) {
                 converged = true;
                 niter = m + 1;
                 return rate;
@@ -371,7 +372,7 @@ namespace radau5iia
         size_t fails = 0, feval = 0, jeval = 0, steps = 0, nlu = 0;
 
         // indexing / indexing for interpolation
-        size_t i, j, k, index_t0 = 1, index_t1, niter;
+        size_t i, j, index_t0 = 1, index_t1, niter;
 
         // values for interpolation
         bool performInterpolate;

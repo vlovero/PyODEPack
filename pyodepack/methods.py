@@ -6,3 +6,4 @@ RK23: int = 2
 RKV98E: int = 3
 RADAU5: int = 4
 RK12: int = 5
+LOVERO: int = 6

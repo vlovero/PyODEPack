@@ -7,6 +7,7 @@ from setuptools.command.install import install as _install
 
 
 BASE_DIR = os.path.dirname(__file__)
+DEBUG = not True
 
 
 class install(_install):
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     module = Extension("pyodepack._pyodepack",
                        sources=["pyodepack/src/_pyodepack.cpp"],
                        include_dirs=["pyodepack/include", np.get_include()],
-                       extra_compile_args=["-std=c++17", "-march=native", "-Ofast"])
+                       extra_compile_args=["-std=c++17", "-march=native", "-Ofast" if not DEBUG else "-g"])
 
     setup(name="pyodepack",
           packages=["pyodepack"],

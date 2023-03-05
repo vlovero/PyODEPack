@@ -380,7 +380,7 @@ namespace lsoda
         /* Terminate lsoda due to various error conditions. */
         void terminate2(T *y, T *t)
         {
-            size_t i;
+            ptrdiff_t i;
             yp1 = yh[1];
             for (i = 1; i <= n; i++) {
                 y[i] = yp1[i];
@@ -400,7 +400,7 @@ namespace lsoda
         */
         void successreturn(T *y, T *t, ptrdiff_t itask, ptrdiff_t ihit, T tcrit, ptrdiff_t *istate)
         {
-            size_t i;
+            ptrdiff_t i;
             yp1 = yh[1];
             for (i = 1; i <= n; i++) {
                 y[i] = yp1[i];
@@ -1646,7 +1646,7 @@ namespace lsoda
         {
             ptrdiff_t mxstp0 = 500, mxhnl0 = 10;
 
-            ptrdiff_t i, iflag, lenyh, ihit;
+            ptrdiff_t i, iflag, lenyh, ihit = 0;
             T atoli, ayi, big, h0, hmax, hmx, rh, rtoli, tcrit, tdist, tnext, tol,
                 tolsf, tp, size, sum, w0;
 

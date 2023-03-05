@@ -29,6 +29,8 @@
 #include "verner98e.h"
 #include "lsoda.h"
 #include "radau5.h"
+#include "lovero_nonstiff.h"
+
 
  // Create Fortran contiguous numpy array from python object (increase ref count if already farray)
  // will be used later when support for user jacobian is added
@@ -54,7 +56,8 @@ enum ODEMethods
     RK23,
     RKV98E,
     RADAU5,
-    RK12
+    RK12,
+    LOVERO
 };
 
 
@@ -62,7 +65,7 @@ void destruct(PyObject *obj)
 {
     void *stepper = PyCapsule_GetPointer(obj, NULL);
     if (stepper) {
-        delete stepper;
+        free(stepper);
     }
 }
 
@@ -145,6 +148,9 @@ inline ODEResult<double> callMethod(int method, funcT f, double *y0, double *t, 
             break;
         case ODEMethods::RK12:
             result = Fehlberg12::integrate<double, decltype(f)>(f, y0, t, y, min_step, max_step, h0, rtol, atol, n, m, sphere, (void *)pyargs);
+            break;
+        case ODEMethods::LOVERO:
+            result = loveroNS::integrate<double, decltype(f)>(f, y0, t, y, min_step, max_step, h0, rtol, atol, n, m, sphere, (void *)pyargs);
             break;
         default:
             PyErr_SetString(PyExc_ValueError, "Not a valid method");
@@ -491,6 +497,9 @@ error:
             case ODEExitCodes::failedInterpolation:
                 message = "interpolant left computation window";
                 break;
+            case ODEExitCodes::stepSizeTooSmall:
+                message = "too much work needed of desired precision (step size too small)";
+                break;
             default:
                 PyErr_Format(PyExc_ValueError, "Unknown exit code %lu", (unsigned long)(result.status));
                 Py_XDECREF(npyY);
@@ -645,7 +654,7 @@ PyObject *PyODEStep(PyObject *self, PyObject *args, PyObject *kwargs)
             PyObject *err = PyErr_Occurred();
             if (err) {
                 // fill with nan to stop integrator from proceeding
-                for (size_t i = 0; i < node; i++) {
+                for (npy_intp i = 0; i < node; i++) {
                     o[i] = std::numeric_limits<double>::quiet_NaN();
                 }
             }
@@ -681,7 +690,7 @@ PyObject *PyODEStep(PyObject *self, PyObject *args, PyObject *kwargs)
                 std::memcpy(o, PyArray_DATA(pya), PyArray_SIZE(pya) * sizeof(double));
             }
             else {
-                for (size_t i = 0; i < node; i++) {
+                for (npy_intp i = 0; i < node; i++) {
                     o[i] = std::numeric_limits<double>::quiet_NaN();
                 }
             }
@@ -709,7 +718,7 @@ error:
     }
 
     if (!full_output) {
-        delete stepper;
+        free(stepper);
         Py_XDECREF(npyWork);
         return npyY;
     }
@@ -725,6 +734,9 @@ error:
                 break;
             case ODEExitCodes::failedInterpolation:
                 message = "interpolant left computation window";
+                break;
+            case ODEExitCodes::stepSizeTooSmall:
+                message = "too much work needed of desired precision (step size too small)";
                 break;
             default:
                 PyErr_Format(PyExc_ValueError, "Unknown exit code %lu", (unsigned long)(result.status));

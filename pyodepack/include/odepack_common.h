@@ -31,7 +31,15 @@ enum ODEExitCodes
 {
     success = 0,
     outOfBounds,
-    failedInterpolation
+    failedInterpolation,
+    stepSizeTooSmall
+};
+
+enum ODEFailCodes: ptrdiff_t
+{
+    noFailures = 0,
+    stepTooSmall,
+    nonFiniteState
 };
 
 namespace std
