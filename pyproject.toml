@@ -43,7 +43,7 @@ Repository = "https://github.com/vlovero/PyODEPack"
 where = ["pyodepack", "."]
 
 [tool.setuptools.package-data]
-include-package-data = ["pyodepack"]
+
 pyodepack = [
     "pyodepack/include/*.h",
     "pyodepack/src/*.cpp",
