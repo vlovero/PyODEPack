@@ -7,11 +7,17 @@ Fast python wrappers for ODE solvers written in C++
  * Bogacki-Shampine (RK23)
  * Verner 9(8) (efficient)
  * RadauIIA-5
+ * LOVERO competitor to LSODE (nonstiff)
 
 ## Requirements
  * setuptools
  * numpy
  * scipy (needed to load LAPACK routines at runtime)
+
+## Install
+`SYSTEM_VERSION_COMPAT=1 python -m pip install git+https://github.com/vlovero/PyODEPack.git`
+The `SYSTEM_VERSION_COMPAT` environment variable is to fix the
+MacOS issue that causes clang to not like the `march=native` compiler flag.
  
  ## Example Usage
  ```Python
