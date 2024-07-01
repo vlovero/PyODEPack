@@ -40,7 +40,7 @@ classifiers = [
 Repository = "https://github.com/vlovero/PyODEPack"
 
 [tool.setuptools.packages.find]
-where = ["pyodepack", "."]
+where = ["pyodepack", ""]
 
 [tool.setuptools.package-data]
 
