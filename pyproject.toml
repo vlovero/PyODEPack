@@ -1,4 +1,7 @@
 [build-system]
+
+env = ["SYSTEM_VERSION_COMPAT = 1"]
+
 requires = [
     "numpy>=1.22",
     "scipy>=1.10.1",
