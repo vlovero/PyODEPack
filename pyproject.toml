@@ -39,6 +39,9 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/vlovero/PyODEPack"
 
+[tool.setuptools]
+py-modules = ['hello']
+
 [tool.setuptools.packages.find]
 where = ["pyodepack", ""]
 
