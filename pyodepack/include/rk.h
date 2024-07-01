@@ -491,7 +491,7 @@ namespace erk
 
                     need2break = interpolate<T, s_star, p, P>(&Y[n * index_t0], &teval[index_t0], yn, K, t0, dt, Dxy, n, index_t1 - index_t0, Q);
                     if (need2break) {
-                        PRINT_ERROR_MESSAGE("interpolant not in computation window or not finite");
+                        // PRINT_ERROR_MESSAGE("interpolant not in computation window or not finite");
                         std::free(work);
                         return { index_t0, feval, jeval, fails, steps, 0, ODEExitCodes::failedInterpolation, dt };
                     }
@@ -507,7 +507,7 @@ namespace erk
                         dst = std::fma(val, val, dst);
                     }
                     if ((dst > Dxy) || !std::isfinite(dst)) {
-                        PRINT_ERROR_MESSAGE("solution not in computation window or not finite");
+                        // PRINT_ERROR_MESSAGE("solution not in computation window or not finite");
                         std::free(work);
                         return { index_t0, feval, jeval, fails, steps, 0, ODEExitCodes::outOfBounds, dt };
                     }
@@ -658,7 +658,7 @@ namespace erk
 
                     need2break = interpolate<T, s_star, p, P>(&Y[index_t0], &teval[index_t0], yn, K, t0, dt, Dxy, 1, index_t1 - index_t0, Q);
                     if (need2break) {
-                        PRINT_ERROR_MESSAGE("interpolant not in computation window or not finite");
+                        // PRINT_ERROR_MESSAGE("interpolant not in computation window or not finite");
                         return { index_t0, feval, jeval, fails, steps, 0, ODEExitCodes::failedInterpolation, dt };
                     }
                     index_t0 = index_t1;
@@ -668,7 +668,7 @@ namespace erk
                     // compute norm if norm wasn't computed during interpolation
                     dst = std::abs(yn1 - center);
                     if ((dst > Dxy) || !std::isfinite(dst)) {
-                        PRINT_ERROR_MESSAGE("solution not in computation window or not finite");
+                        // PRINT_ERROR_MESSAGE("solution not in computation window or not finite");
                         return { index_t0, feval, jeval, fails, steps, 0, ODEExitCodes::outOfBounds, dt };
                     }
                 }

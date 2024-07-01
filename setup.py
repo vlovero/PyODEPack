@@ -1,10 +1,10 @@
 import os
-import sys
 import subprocess
-import numpy as np
-from setuptools import setup, Extension
-from setuptools.command.install import install as _install
+import sys
 
+import numpy as np
+from setuptools import Extension, setup
+from setuptools.command.install import install as _install
 
 BASE_DIR = os.path.dirname(__file__)
 DEBUG = not True
@@ -31,9 +31,9 @@ if __name__ == "__main__":
           author_email="vllovero@ucdavis.edu",
           description="python package for integrating ODEs",
           install_requires=["setuptools", "numpy>=1.22", "scipy"],
-          cmdclass={'install': install},
+          cmdclass={"install": install},
           include_package_data=True,
-          package_data={'pyodepack': ['py.typed', '__init__.pyi']},
+          package_data={"pyodepack": ["py.typed", "__init__.pyi"]},
           classifiers=["Development Status :: 4 - Beta",
                        "Operating System :: MacOS",
                        "License :: OSI Approved :: MIT License",

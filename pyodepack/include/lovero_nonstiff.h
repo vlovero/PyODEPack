@@ -511,7 +511,7 @@ namespace loveroNS
             }
         }
 
-        inline T nonstiffStep(T &norm0, T &ratio, bool &failed)
+        inline T nonstiffStep(T &norm0, T &ratio, bool &failed, const T direction)
         {
             T tn1, hn1_0, Q;
             NewtonPolynomial p(pnx, node, px, A);
@@ -519,7 +519,7 @@ namespace loveroNS
             failed = false;
 
             while (1) {
-                tn1 = tn + hn;
+                tn1 = tn + direction * hn;
                 // O(sn + s^2) work
                 p.integrate(tn, tn1, yn1);
                 addYnTo(yn1);
@@ -671,7 +671,7 @@ namespace loveroNS
             }
         }
 
-        bool step()
+        bool step(const T direction = 1.0)
         {
             T norm0, ratio, tn1;
             bool failed;
@@ -685,7 +685,7 @@ namespace loveroNS
                 // stiff step
             }
             else {
-                tn1 = nonstiffStep(norm0, ratio, failed);
+                tn1 = nonstiffStep(norm0, ratio, failed, direction);
             }
 
             // method switch
@@ -733,7 +733,7 @@ namespace loveroNS
 
         ptrdiff_t stepWithCheckpoints(const RP(T) teval, RP(T) yeval, const ptrdiff_t neval)
         {
-            T norm0, ratio, tn1, ttarget;
+            T norm0, ratio, tn1, ttarget, direction;
             ptrdiff_t k;
             bool failed;
 
@@ -745,6 +745,7 @@ namespace loveroNS
             }
 
             ttarget = *teval;
+            direction = (ttarget < tn) ? -1.0 : 1.0;
             k = 0;
 
             steps++;
@@ -756,11 +757,11 @@ namespace loveroNS
                 // stiff step
             }
             else {
-                tn1 = nonstiffStep(norm0, ratio, failed);
+                tn1 = nonstiffStep(norm0, ratio, failed, direction);
             }
 
             // evaluate at checkpoints
-            while ((k < neval) && (ttarget <= tn1)) {
+            while ((k < neval) && (0 <= direction * (tn1 - ttarget))) {
                 NewtonPolynomial(pnx, node, px, A).integrate(tn, ttarget, &yeval[node * k]);
                 addYnTo(&yeval[node * k]);
                 k++;
@@ -806,16 +807,17 @@ namespace loveroNS
 
         ptrdiff_t diff, k, i, j;
         ptrdiff_t neval = m, offset = 1;
-        T val, dst, tf;
+        T val, dst, tf, direction;
         T *yj;
 
         memcpy(Y, y0, n * sizeof(T));
         diff = neval - offset;
         tf = teval[m - 1];
+        direction = (tf < *teval) ? -1.0 : 1.0;
 
         LoveroNS<T, funcT> stepper(fn, n, y0, *teval, h0, atol, rtol, fargs);
 
-        while (stepper.tn < tf) {
+        while (0 < (direction * (tf - stepper.tn))) {
             k = stepper.stepWithCheckpoints(&teval[offset], &Y[offset * n], diff);
             if (k < 0) {
                 // pre step checks failed
