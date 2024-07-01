@@ -14,7 +14,7 @@ class install(_install):
         cmd = [sys.executable, __file__, "build"]
         process = subprocess.Popen(cmd)
         process.wait()
-        _install.run(self)
+        return _install.run(self)
 
 
 if __name__ == "__main__":
