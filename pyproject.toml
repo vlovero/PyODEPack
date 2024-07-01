@@ -40,7 +40,7 @@ classifiers = [
 Repository = "https://github.com/vlovero/PyODEPack"
 
 [tool.setuptools]
-py-modules = ['hello']
+packages = ["pyodepack"]
 
 [tool.setuptools.packages.find]
 where = ["pyodepack", ""]
@@ -52,6 +52,10 @@ pyodepack = [
     "pyodepack/src/*.cpp",
     "pyodepack/*.py",
     "pyodepack/*.pyi",
+    "include/*.h",
+    "src/*.cpp",
+    "*.py",
+    "*.pyi",
 ]
 
 
