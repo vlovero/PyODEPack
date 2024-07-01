@@ -40,10 +40,10 @@ classifiers = [
 Repository = "https://github.com/vlovero/PyODEPack"
 
 [tool.setuptools.packages.find]
-where = ["pyodepack"]
+where = ["pyodepack", "."]
 
 [tool.setuptools.package-data]
-include-package-data = true
+include-package-data = ["pyodepack"]
 pyodepack = [
     "pyodepack/include/*.h",
     "pyodepack/src/*.cpp",
