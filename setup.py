@@ -1,6 +1,8 @@
 import os
-import subprocess
+os.environ["SYSTEM_VERSION_COMPAT"] = "1"
+
 import sys
+import subprocess
 import numpy as np
 from setuptools import Extension, setup
 from setuptools.command.install import install as _install
