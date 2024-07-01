@@ -1,6 +1,4 @@
 import os
-os.environ["SYSTEM_VERSION_COMPAT"] = "1"
-
 import sys
 import subprocess
 import numpy as np

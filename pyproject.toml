@@ -42,6 +42,14 @@ Repository = "https://github.com/vlovero/PyODEPack"
 [tool.setuptools.packages.find]
 where = ["pyodepack"]
 
+[tool.setuptools.package-data]
+pyodepack = [
+    "pyodepack/include/*.h",
+    "pyodepack/src/*.cpp",
+    "pyodepack/*.py",
+    "pyodepack/*.pyi",
+]
+
 
 [tool.ruff]
 exclude = [
