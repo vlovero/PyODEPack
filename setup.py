@@ -1,7 +1,6 @@
 import os
 import subprocess
 import sys
-
 import numpy as np
 from setuptools import Extension, setup
 from setuptools.command.install import install as _install
