@@ -219,7 +219,7 @@ namespace loveroNS
             size_t &nx, ny;
 
         public:
-            NewtonPolynomial(size_t &n, size_t m, RP(T) xk, RP(T) *A)
+            NewtonPolynomial(size_t &n, size_t m, RP(T) xk, T **A)
                 : x(xk), A(A), nx(n), ny(m)
             {
             }
